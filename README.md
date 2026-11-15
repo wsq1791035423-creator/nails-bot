@@ -202,6 +202,6 @@ git commit -m "改了什么"
 git push
 ```
 
-仓库：<https://github.com/wsq1791035423-creator/nails-bot>（Private）
+仓库：<https://github.com/wsq1791035423-creator/nails-bot>
 
 `.env` 已在 `.gitignore` 里，不会被提交。换电脑要手动放一份。
