@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>款式图库 · 预览</title>
+<style>
+  :root {
+    --bg: #faf6f4; --card: #fff; --ink: #2f2a2c; --muted: #8b8186;
+    --line: #eee4e0; --rose: #c96f7f; --rose-soft: #f6e3e4; --warn-bg: #fdf5e3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  header { max-width: 1200px; margin: 0 auto; padding: 26px 20px 6px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a:hover { color: var(--rose); }
+  nav a.on { color: var(--rose); font-weight: 600; }
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 13px; }
+  .stats b { color: var(--rose); font-size: 18px; }
+  .toolbar {
+    max-width: 1200px; margin: 14px auto 0; padding: 0 20px;
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  }
+  .toolbar input {
+    flex: 1; min-width: 200px; padding: 9px 13px; border: 1px solid var(--line);
+    border-radius: 10px; font: inherit; background: #fff;
+  }
+  .chip {
+    padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: #fff; cursor: pointer; font-size: 12.5px; color: var(--muted);
+  }
+  .chip.on { background: var(--rose); border-color: var(--rose); color: #fff; }
+  .grid {
+    max-width: 1200px; margin: 0 auto; padding: 18px 20px 60px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px;
+  }
+  .item {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden; cursor: pointer; transition: .15s;
+  }
+  .item:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(80, 50, 60, .08); }
+  .thumb { aspect-ratio: 4 / 5; background: #f2ebe8; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .body { padding: 10px 12px 12px; }
+  .nm { font-weight: 600; font-size: 13.5px; margin-bottom: 6px; line-height: 1.35; }
+  .id { color: #b9adb1; font-size: 11px; font-weight: 400; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag {
+    font-size: 11px; padding: 2px 7px; border-radius: 999px;
+    background: var(--rose-soft); color: #8a4b57;
+  }
+  .tag.dim { background: #f3eeec; color: var(--muted); }
+  .flag {
+    display: inline-block; margin-top: 7px; font-size: 10.5px;
+    background: var(--warn-bg); color: #8a6a12; padding: 2px 7px; border-radius: 6px;
+  }
+  .empty { color: var(--muted); padding: 40px 20px; text-align: center; }
+
+  /* 大图 */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(40, 30, 34, .72);
+    display: none; align-items: center; justify-content: center; padding: 24px; z-index: 50;
+  }
+  .overlay.on { display: flex; }
+  .modal {
+    background: #fff; border-radius: 16px; overflow: hidden; max-width: 560px; width: 100%;
+    max-height: 92vh; display: flex; flex-direction: column;
+  }
+  .modal img { width: 100%; max-height: 62vh; object-fit: contain; background: #f2ebe8; }
+  .modal .mbody { padding: 16px 18px 18px; overflow: auto; }
+  .modal h2 { margin: 0 0 8px; font-size: 17px; }
+  .modal .row { font-size: 13px; color: var(--muted); margin: 4px 0; }
+  .modal .row b { color: var(--ink); font-weight: 600; }
+  .close {
+    position: absolute; top: 18px; right: 24px; background: rgba(255,255,255,.16);
+    border: 0; color: #fff; width: 34px; height: 34px; border-radius: 50%;
+    font-size: 18px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>款式图库</h1>
+  <div class="sub">从 Word 导入的款式，共 <span id="n">0</span> 款。点卡片看大图和完整标签。</div>
+  <nav>
+    <a href="/web/chat.html">AI 对话</a>
+    <a href="/web/recommend.html">选款推荐</a>
+    <a href="/web/gallery.html" class="on">款式图库</a>
+    <a href="/web/">报价器</a>
+  </nav>
+  <div class="stats" id="stats"></div>
+</header>
+
+<div class="toolbar">
+  <input id="q" placeholder="搜名字或标签，比如「猫眼」「短」">
+  <div id="chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+</div>
+
+<div class="grid" id="grid"></div>
+<div class="empty" id="empty" style="display:none">没有匹配的款式</div>
+
+<div class="overlay" id="overlay">
+  <button class="close" id="close">×</button>
+  <div class="modal" id="modal"></div>
+</div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+let all = [], filter = "全部";
+
+function tagList(d) {
+  const t = d.tags;
+  return [
+    t.color,
+    ...(t.style || []),
+    t.length,
+    t.skin_effect,
+    ...(t.occasion || []),
+    ...(t.hand_fit || []),
+    t.extend,
+    t.difficulty,
+  ].filter(Boolean);
+}
+
+function matches(d, kw) {
+  if (!kw) return true;
+  const hay = (d.name + " " + tagList(d).join(" ")).toLowerCase();
+  return hay.includes(kw.toLowerCase());
+}
+
+function render() {
+  const kw = $("q").value.trim();
+  const list = all.filter((d) => matches(d, kw) && (filter === "全部" || (d.tags.style || []).includes(filter)));
+  $("grid").innerHTML = list.map((d) => `
+    <div class="item" data-id="${d.id}">
+      <div class="thumb">${d.img ? `<img src="${d.img}" loading="lazy" alt="${d.name}">` : ""}</div>
+      <div class="body">
+        <div class="nm">${d.name} <span class="id">${d.id}</span></div>
+        <div class="tags">
+          <span class="tag">${d.tags.color || "—"}</span>
+          ${(d.tags.style || []).map((s) => `<span class="tag">${s}</span>`).join("")}
+          <span class="tag dim">${d.tags.length || "—"}</span>
+          <span class="tag dim">${d.tags.skin_effect || "—"}</span>
+        </div>
+        ${d.price_confirm ? `<div class="flag">价格待确认</div>` : ""}
+      </div>
+    </div>`).join("");
+  $("empty").style.display = list.length ? "none" : "block";
+}
+
+function openModal(d) {
+  $("modal").innerHTML = `
+    ${d.img ? `<img src="${d.img}" alt="${d.name}">` : ""}
+    <div class="mbody">
+      <h2>${d.name}</h2>
+      <div class="row"><b>色系</b>　${d.tags.color || "—"}</div>
+      <div class="row"><b>风格</b>　${(d.tags.style || []).join(" / ") || "—"}</div>
+      <div class="row"><b>长度</b>　${d.tags.length || "—"}</div>
+      <div class="row"><b>显白度</b>　${d.tags.skin_effect || "—"}</div>
+      <div class="row"><b>场合</b>　${(d.tags.occasion || []).join(" / ") || "—"}</div>
+      <div class="row"><b>适合手型</b>　${(d.tags.hand_fit || []).join(" / ") || "—"}</div>
+      <div class="row"><b>需要延长</b>　${d.tags.extend || "—"}</div>
+      <div class="row"><b>难度</b>　${d.tags.difficulty || "—"}</div>
+      <div class="row"><b>对应加价项</b>　${(d.style_ids || []).map((id) => (d.style_labels?.[id] || []).join(" / ") || id).join("；") || "无（含在基础价）"}</div>
+      ${d.note ? `<div class="row"><b>备注</b>　${d.note}</div>` : ""}
+      ${d.price_confirm ? `<div class="flag">这款价格还没定，需要你确认</div>` : ""}
+    </div>`;
+  $("overlay").classList.add("on");
+}
+
+(async function init() {
+  const res = await fetch("/knowledge/03_styles.jsonl");
+  const text = await res.text();
+  all = text.split("\n").filter((l) => l.trim()).map((l) => JSON.parse(l));
+  $("n").textContent = all.length;
+
+  const counts = {
+    显白: all.filter((d) => d.tags.skin_effect === "显白").length,
+    待确认价: all.filter((d) => d.price_confirm).length,
+  };
+  $("stats").innerHTML = `
+    <span>共 <b>${all.length}</b> 款</span>
+    <span>显白款 <b>${counts.显白}</b></span>
+    <span>价格待确认 <b>${counts.待确认价}</b></span>`;
+
+  const styleSet = [...new Set(all.flatMap((d) => d.tags.style || []))];
+  $("chips").innerHTML = ["全部", ...styleSet]
+    .map((s) => `<button class="chip${s === filter ? " on" : ""}" data-f="${s}">${s}</button>`)
+    .join("");
+
+  $("chips").onclick = (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    filter = b.dataset.f;
+    [...$("chips").children].forEach((c) => c.classList.toggle("on", c.dataset.f === filter));
+    render();
+  };
+  $("q").oninput = render;
+  $("grid").onclick = (e) => {
+    const item = e.target.closest(".item");
+    if (item) openModal(all.find((d) => d.id === item.dataset.id));
+  };
+  $("overlay").onclick = (e) => {
+    if (e.target === $("overlay") || e.target === $("close")) $("overlay").classList.remove("on");
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>
