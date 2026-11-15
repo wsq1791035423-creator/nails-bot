@@ -5,3 +5,5 @@ node_modules/
 data/styles/web/
 *.log
 .tmp/
+__pycache__/
+*.pyc
