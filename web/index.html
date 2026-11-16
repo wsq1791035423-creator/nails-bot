@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -6,16 +6,16 @@
 <title>美甲报价器 · Demo</title>
 <style>
   :root {
-    --bg: #faf6f4;
+    --bg: #f7f4fc;
     --card: #ffffff;
-    --ink: #2f2a2c;
-    --muted: #8b8186;
-    --line: #eee4e0;
-    --rose: #c96f7f;
-    --rose-soft: #f6e3e4;
-    --gold: #b8860b;
-    --warn-bg: #fdf5e3;
-    --danger: #b3453f;
+    --ink: #2c2733;
+    --muted: #857d94;
+    --line: #e7e1f2;
+    --purple: #8b5cf6;
+    --purple-soft: #ede4fb;
+    --gold: #9b6d00;
+    --warn-bg: #fbf3e2;
+    --danger: #c0455e;
   }
   * { box-sizing: border-box; }
   body {
@@ -34,8 +34,8 @@
   header p { margin: 0; color: var(--muted); font-size: 13px; }
   nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
   nav a { color: var(--muted); text-decoration: none; }
-  nav a:hover { color: var(--rose); }
-  nav a.on { color: var(--rose); font-weight: 600; }
+  nav a:hover { color: var(--purple); }
+  nav a.on { color: var(--purple); font-weight: 600; }
   .wrap {
     max-width: 1120px;
     margin: 0 auto;
@@ -71,13 +71,13 @@
     padding: 12px 14px;
     cursor: pointer;
     transition: .15s;
-    background: #fffdfc;
+    background: #fdfcff;
     position: relative;
   }
-  .base:hover { border-color: #e3c6cc; }
-  .base.on { border-color: var(--rose); background: var(--rose-soft); }
+  .base:hover { border-color: #d6c8ee; }
+  .base.on { border-color: var(--purple); background: var(--purple-soft); }
   .base .t { font-weight: 600; font-size: 14px; }
-  .base .p { color: var(--rose); font-weight: 700; font-size: 18px; margin-top: 2px; }
+  .base .p { color: var(--purple); font-weight: 700; font-size: 18px; margin-top: 2px; }
   .base .p small { font-size: 12px; font-weight: 500; color: var(--muted); }
   .base .d { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.45; }
 
@@ -93,9 +93,9 @@
   .style-row:last-child { border-bottom: none; }
   .style-row .nm { font-size: 14px; }
   .style-row .rule { color: var(--muted); font-size: 11.5px; }
-  .style-row input[type=range] { width: 100%; accent-color: var(--rose); }
+  .style-row input[type=range] { width: 100%; accent-color: var(--purple); }
   .style-row .val { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
-  .style-row .val b { color: var(--rose); }
+  .style-row .val b { color: var(--purple); }
   .style-row.zero { opacity: .55; }
 
   /* 附加费 */
@@ -111,7 +111,7 @@
     width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--line);
     background: #fff; color: var(--ink); cursor: pointer; font-size: 14px; line-height: 1;
   }
-  .stepper button:hover { border-color: var(--rose); color: var(--rose); }
+  .stepper button:hover { border-color: var(--purple); color: var(--purple); }
   .stepper span { min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; }
 
   .late input {
@@ -123,7 +123,7 @@
   aside { position: sticky; top: 16px; }
   @media (max-width: 860px) { aside { position: static; } }
   .quote-total {
-    font-size: 40px; font-weight: 700; color: var(--rose);
+    font-size: 40px; font-weight: 700; color: var(--purple);
     font-variant-numeric: tabular-nums; line-height: 1.1;
   }
   .quote-total.cancelled { color: var(--danger); font-size: 26px; }
@@ -380,7 +380,7 @@ $("lateMin").oninput = (e) => {
     pricing = await res.json();
   } catch (e) {
     document.body.insertAdjacentHTML("beforeend",
-      `<div style="padding:20px;color:#b3453f">读不到 pricing.json，请用 node src/server.mjs 启动。</div>`);
+      `<div style="padding:20px;color:#c0455e">读不到 pricing.json，请用 node src/server.mjs 启动。</div>`);
     return;
   }
   load();
