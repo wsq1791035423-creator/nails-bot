@@ -177,8 +177,43 @@ export function quote(pricing, q) {
     }
   }
 
+  // 老顾客折扣：整单打折，四舍五入到整元
+  let discount = null;
+  if (!cancelled && q.returning) {
+    const rate = pricing.rules?.discount?.returning ?? 0.95;
+    const rateLabel = pricing.rules?.discount?.name || "老顾客";
+    const beforeMin = min;
+    const beforeMax = max;
+    const newMin = Math.round(min * rate);
+    const newMax = Math.round(max * rate);
+    const savedMin = beforeMin - newMin;
+    const savedMax = beforeMax - newMax;
+    if (savedMin > 0 || savedMax > 0) {
+      const zhe = Math.round(rate * 100) / 10;
+      const savedText =
+        savedMin === savedMax ? `¥${savedMin}` : `¥${savedMin}–${savedMax}`;
+      lines.push({
+        label: `${rateLabel} ${zhe} 折`,
+        amount: `−${savedText}`,
+        note: `${beforeMin === beforeMax ? `¥${beforeMin}` : `¥${beforeMin}–${beforeMax}`} → ${newMin === newMax ? `¥${newMin}` : `¥${newMin}–${newMax}`}`,
+      });
+      min = newMin;
+      max = newMax;
+      discount = {
+        rate,
+        zhe,
+        label: rateLabel,
+        beforeText: beforeMin === beforeMax ? `¥${beforeMin}` : `¥${beforeMin}–${beforeMax}`,
+        afterText: newMin === newMax ? `¥${newMin}` : `¥${newMin}–${newMax}`,
+        savedText,
+      };
+    }
+  }
+
   return {
     cancelled,
+    discount,
+    returning: !!q.returning,
     totalMin: cancelled ? null : min,
     totalMax: cancelled ? null : max,
     totalText: cancelled ? "订单取消" : min === max ? `¥${min}` : `¥${min}–${max}`,

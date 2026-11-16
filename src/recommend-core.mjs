@@ -27,7 +27,7 @@ export function extendOptions(pricing) {
 const PER_FINGER_SKUS = new Set(["S4", "S5", "S6"]);
 
 /** 按「能确定的部分」估算报价；按指计价的款式单独列出单价 */
-export function priceForStyle(pricing, style) {
+export function priceForStyle(pricing, style, opts = {}) {
   const baseId = baseForStyle();
   const ids = style.style_ids || [];
   // 名字里写了「全手 / 整手」的，按 10 指算（否则按指另计）
@@ -51,6 +51,7 @@ export function priceForStyle(pricing, style) {
   const result = quote(pricing, {
     baseId,
     styles: fixedDedup.map((id) => ({ id, fingers: 10 })),
+    returning: !!opts.returning,
   });
 
   // 同组做法（法式+波点+腮红…）可能各自做满整手，价格会叠加 → 给出的上限
@@ -59,6 +60,7 @@ export function priceForStyle(pricing, style) {
     const rMax = quote(pricing, {
       baseId,
       styles: fixed.map((id) => ({ id, fingers: 10 })),
+      returning: !!opts.returning,
     });
     totalMax = rMax.totalMax;
   }

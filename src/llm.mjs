@@ -58,11 +58,12 @@ export const TOOLS = [
     function: {
       name: "quote_style",
       description:
-        "查某一款的具体报价（明细 + 合计 + 时长）。style_id 来自客人发图后匹配到的款式，或客人点名要的款。",
+        "查某一款的具体报价（明细 + 合计 + 时长）。style_id 来自客人发图后匹配到的款式，或客人点名要的款。客人说是老顾客时 returning 传 true。",
       parameters: {
         type: "object",
         properties: {
           style_id: { type: "string", description: "款式 id，如 ST001" },
+          returning: { type: "boolean", description: "是不是老顾客（回头客），是的话打 95 折" },
         },
         required: ["style_id"],
       },
@@ -72,8 +73,14 @@ export const TOOLS = [
     type: "function",
     function: {
       name: "list_services",
-      description: "列出四个基础项目的名称和价格（本甲、甲膜延长、高位半贴、浅贴延长）。客人问\"纯色多少钱\"时先调这个。",
-      parameters: { type: "object", properties: {} },
+      description:
+        "列出四个基础项目的名称和价格（本甲、甲膜延长、高位半贴、浅贴延长）。客人问\"纯色多少钱\"时先调这个。客人是老顾客就传 returning=true。",
+      parameters: {
+        type: "object",
+        properties: {
+          returning: { type: "boolean", description: "是不是老顾客（回头客），是的话打 95 折" },
+        },
+      },
     },
   },
   {
@@ -213,7 +220,7 @@ function runTool(name, args) {
   if (name === "quote_style") {
     const style = STYLES.find((s) => s.id === args.style_id);
     if (!style) return { error: `没有 id 为 ${args.style_id} 的款式` };
-    const p = priceForStyle(PRICING, style);
+    const p = priceForStyle(PRICING, style, { returning: !!args.returning });
     return {
       style_id: style.id,
       name: style.name,
@@ -221,13 +228,21 @@ function runTool(name, args) {
       duration: p.durationText,
       lines: p.lines.map((l) => `${l.label}：${l.amount}`),
       extra: p.extraText || null,
+      discount: p.discount ? `${p.discount.label} ${p.discount.zhe} 折，省 ${p.discount.savedText}` : null,
     };
   }
 
   if (name === "list_services") {
+    const rate = PRICING.rules?.discount?.returning ?? 0.95;
+    const returning = !!args.returning;
     return {
-      services: PRICING.base.map((b) => `${b.id} ${b.name} ¥${b.price}（${b.duration_min} 分钟标准工时）`),
-      note: "所有基础价都含：卸本甲（免费）+ 去死皮 + 湿处理 + 纯色/猫眼（B3 除外已含）",
+      services: PRICING.base.map((b) => {
+        const price = returning ? Math.round(b.price * rate) : b.price;
+        const note = returning ? `原价 ${b.price}，老顾客 ${b.price} → ${price}` : "";
+        return `${b.id} ${b.name} ¥${price}（${b.duration_min} 分钟标准工时）${note ? "｜" + note : ""}`;
+      }),
+      returning,
+      note: "所有基础价都含：卸本甲（免费）+ 去死皮 + 湿处理 + 纯色/猫眼",
     };
   }
 

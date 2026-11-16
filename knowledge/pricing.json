@@ -167,6 +167,11 @@
   ],
   "rules": {
     "prep_included": "卸本甲免费，不限款式；去死皮、湿处理均已含在基础项目价内",
+    "discount": {
+      "returning": 0.95,
+      "name": "老顾客",
+      "note": "回头客总价 95 折，按整单打折，四舍五入到整元。报价前先问清是不是第一次来。"
+    },
     "late": {
       "free_minutes": 10,
       "per_minute_fee": 1,
