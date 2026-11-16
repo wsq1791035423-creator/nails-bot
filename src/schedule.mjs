@@ -1,10 +1,5 @@
-// 档期 + 订单：读取 schedule.json，查空位、下订单、改约、取消
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const FILE = path.join(__dirname, "..", "knowledge", "schedule.json");
+// 档期 + 订单：查空位、下订单、改约、取消
+import { loadAll, saveAll } from "./store.mjs";
 
 const TZ_OFFSET = "+08:00";
 const WEEK_CN = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -19,12 +14,10 @@ const STATUS_CN = {
 };
 
 function load() {
-  const d = JSON.parse(fs.readFileSync(FILE, "utf8"));
-  if (!d.orders) d.orders = d.booked || [];
-  return d;
+  return loadAll();
 }
 function save(data) {
-  fs.writeFileSync(FILE, JSON.stringify(data, null, 2), "utf8");
+  saveAll(data);
 }
 function toDate(s) {
   return new Date(`${s}T12:00:00${TZ_OFFSET}`);

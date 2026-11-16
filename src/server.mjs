@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { chat } from "./llm.mjs";
 import { getLooks, retryLooks } from "./imagegen.mjs";
 import { readSchedule, saveDay, saveWeekly, cancelOrder, createOrder, upcomingDays } from "./schedule-admin.mjs";
+import { backupOrders } from "./store.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = Number(process.env.PORT ?? 8787);
@@ -147,4 +148,11 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`报价器 demo: http://127.0.0.1:${PORT}`);
   console.log(`局域网访问: http://<你的电脑IP>:${PORT}`);
+  // 每次启动自动备份一次订单，防止误操作丢数据
+  try {
+    const f = backupOrders();
+    if (f) console.log(`订单已备份: ${f}`);
+  } catch (e) {
+    console.warn("备份失败:", e.message);
+  }
 });

@@ -3,6 +3,8 @@ node_modules/
 .env.*
 !.env.example
 data/styles/web/
+data/orders.json
+data/backups/
 *.log
 .tmp/
 __pycache__/

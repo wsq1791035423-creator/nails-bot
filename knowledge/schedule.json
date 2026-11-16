@@ -46,6 +46,5 @@
     "max_per_day": 2,
     "slot_hours": 2.5,
     "timezone": "Asia/Shanghai"
-  },
-  "orders": []
+  }
 }

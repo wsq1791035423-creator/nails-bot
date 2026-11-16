@@ -1,4 +1,4 @@
-﻿# 美甲预约 Bot
+# 美甲预约 Bot
 
 一个给个人美甲师用的 AI 接待助手：客人发图问价、说需求推荐、查档期、登记预约，全程不用你盯着手机。
 
@@ -122,13 +122,22 @@ python scripts/import-from-docx.py "C:\Users\你\Desktop\你的文件.docx"
 
 ## 改档期
 
-`knowledge/schedule.json`
+分两个文件，**订单和配置是分开的**：
+
+| 文件 | 存什么 | 进 git 吗 |
+| --- | --- | --- |
+| `knowledge/schedule.json` | 营业时间、例外日、规则 | 是 |
+| `data/orders.json` | 客人的预约 | **否**（已 gitignore） |
+
+这样改代码、切分支、拉远程都不会碰你的订单。
+
+### 配置文件
 
 ```json
 {
   "weekly": {
-    "0": [["10:00","12:00"],["13:30","20:00"]],   // 0=周日
-    "1": [...],                                     // 1=周一
+    "0": [["10:00","18:30"]],       // 0=周日
+    "1": [["18:00","22:00"]],       // 1=周一
     ...
   },
   "exceptions": {
@@ -138,12 +147,15 @@ python scripts/import-from-docx.py "C:\Users\你\Desktop\你的文件.docx"
     "min_notice_hours": 24,    // 至少提前一天
     "max_per_day": 2,          // 一天最多两单
     "slot_hours": 2.5          // 每单占多久
-  },
-  "orders": []                 // 订单，bot 自动写，别手改
+  }
 }
 ```
 
-微信里客人预约后，订单进 `orders`，状态是 `pending`（待店主确认）。
+### 订单文件
+
+`data/orders.json` 由程序自动读写，**不要手改**。
+
+每次服务启动会自动备份到 `data/backups/`，误删了能从那里找回来。
 
 ---
 

@@ -1,23 +1,17 @@
 // 档期管理：店主自己设置营业时间、休息日、取消预约
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const FILE = path.join(__dirname, "..", "knowledge", "schedule.json");
+import { loadAll, saveAll } from "./store.mjs";
 
 const WEEK_CN = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const TZ = "+08:00";
 const ACTIVE = new Set(["pending", "confirmed", "rescheduled"]);
 
 function load() {
-  const d = JSON.parse(fs.readFileSync(FILE, "utf8"));
-  if (!d.orders) d.orders = [];
+  const d = loadAll();
   if (!d.exceptions) d.exceptions = {};
   return d;
 }
 function save(d) {
-  fs.writeFileSync(FILE, JSON.stringify(d, null, 2), "utf8");
+  saveAll(d);
 }
 function todayStr() {
   return new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
