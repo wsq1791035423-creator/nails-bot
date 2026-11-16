@@ -67,10 +67,16 @@
 
   /* 每周固定 */
   .week-row {
-    display: grid; grid-template-columns: 62px 1fr auto; gap: 10px;
+    display: grid; grid-template-columns: 62px 1fr; gap: 10px;
     align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--line);
   }
-  .week-row:last-child { border-bottom: none; }
+  .week-row:last-of-type { border-bottom: none; }
+  .weekly-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line);
+  }
+  .wf-hint { font-size: 12px; color: var(--muted); }
+  .btn-lg { padding: 9px 22px; font-size: 13.5px; font-weight: 600; }
   .wd { font-size: 13px; font-weight: 600; color: #4a4055; }
   .ranges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .range-inputs { display: flex; align-items: center; gap: 5px; }
@@ -266,61 +272,76 @@ async function load() {
   renderOrders();
 }
 
-/* ---------- 每周固定 ---------- */
+/* ---------- 每周固定：改完一次性保存 ---------- */
 function renderWeekly() {
   const names = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-  $("weekly").innerHTML = names
-    .map((n, i) => {
-      const ranges = DATA.weekly[String(i)] || [];
-      const body = ranges.length
-        ? `<div class="ranges">${ranges
-            .map(
-              (r, j) => `<div class="range-inputs">
-                <input type="time" value="${r[0]}" data-wd="${i}" data-idx="${j}" data-k="0">
-                <span class="dash">–</span>
-                <input type="time" value="${r[1]}" data-wd="${i}" data-idx="${j}" data-k="1">
-              </div>`
-            )
-            .join("")}<button class="add" data-addwd="${i}">+</button></div>`
-        : `<div class="ranges"><span class="off-tag">休息</span><button class="add" data-addwd="${i}">+ 加时间段</button></div>`;
-      return `<div class="week-row"><div class="wd">${n}</div><div>${body}</div>
-        <button class="btn-s" data-savewd="${i}">保存</button></div>`;
-    })
-    .join("");
+  $("weekly").innerHTML =
+    names
+      .map((n, i) => {
+        const ranges = DATA.weekly[String(i)] || [];
+        const body = ranges.length
+          ? `<div class="ranges">${ranges
+              .map(
+                (r, j) => `<div class="range-inputs" data-wd="${i}" data-idx="${j}">
+                  <input type="time" value="${r[0]}" data-k="0">
+                  <span class="dash">–</span>
+                  <input type="time" value="${r[1]}" data-k="1">
+                  <button class="rm" data-rmwd="${i}" data-idx="${j}" title="删掉这段">×</button>
+                </div>`
+              )
+              .join("")}<button class="add" data-addwd="${i}">+</button></div>`
+          : `<div class="ranges"><span class="off-tag">休息</span><button class="add" data-addwd="${i}">+ 加时间</button></div>`;
+        return `<div class="week-row"><div class="wd">${n}</div><div>${body}</div></div>`;
+      })
+      .join("") +
+    `<div class="weekly-foot">
+       <span class="wf-hint">改完点右边保存，一次存全部</span>
+       <button class="btn-s primary btn-lg" id="saveWeekly">保存全部</button>
+     </div>`;
 
-  $("weekly").onclick = async (e) => {
+  // 增删时间段只在本地改，不立刻提交
+  $("weekly").onclick = (e) => {
     const addBtn = e.target.closest("[data-addwd]");
     if (addBtn) {
       const wd = addBtn.dataset.addwd;
-      const cur = (DATA.weekly[wd] || []).concat([["10:00", "18:00"]]);
-      DATA.weekly[wd] = cur;
-      await postWeekly(wd, cur);
+      DATA.weekly[wd] = (DATA.weekly[wd] || []).concat([["10:00", "18:00"]]);
+      renderWeekly();
       return;
     }
-    const saveBtn = e.target.closest("[data-savewd]");
-    if (saveBtn) {
-      const wd = saveBtn.dataset.savewd;
-      const ranges = [...$("weekly").querySelectorAll(`input[data-wd="${wd}"]`)];
-      const grouped = {};
-      for (const inp of ranges) {
-        const i = inp.dataset.idx;
-        grouped[i] = grouped[i] || ["", ""];
-        grouped[i][Number(inp.dataset.k)] = inp.value;
-      }
-      const clean = Object.values(grouped).filter((r) => r[0] && r[1] && r[0] < r[1]);
-      await postWeekly(wd, clean);
+    const rmBtn = e.target.closest("[data-rmwd]");
+    if (rmBtn) {
+      const wd = rmBtn.dataset.rmwd;
+      DATA.weekly[wd].splice(Number(rmBtn.dataset.idx), 1);
+      renderWeekly();
+      return;
     }
+    if (e.target.closest("#saveWeekly")) saveAllWeekly();
   };
 }
 
-async function postWeekly(weekday, ranges) {
-  const r = await fetch("/api/schedule/weekly", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ weekday, ranges }),
-  }).then((x) => x.json());
-  if (r.error) { toast("保存失败：" + r.error); return; }
-  toast("已保存");
+async function saveAllWeekly() {
+  const rows = [...$("weekly").querySelectorAll(".week-row")];
+  const names = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  let changed = 0;
+  for (let i = 0; i < 7; i++) {
+    const row = rows[i];
+    const groups = [...row.querySelectorAll(".range-inputs")].map((g) => {
+      const [a, b] = g.querySelectorAll("input[type=time]");
+      return [a.value, b.value];
+    });
+    const clean = groups.filter((r) => r[0] && r[1] && r[0] < r[1]);
+    const old = JSON.stringify(DATA.weekly[String(i)] || []);
+    if (JSON.stringify(clean) !== old) {
+      const r = await fetch("/api/schedule/weekly", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ weekday: i, ranges: clean }),
+      }).then((x) => x.json());
+      if (r.error) { toast(names[i] + " 保存失败：" + r.error); return; }
+      changed++;
+    }
+  }
+  toast(changed ? `已保存 ${changed} 天的改动` : "没有改动");
   await load();
 }
 
