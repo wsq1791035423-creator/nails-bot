@@ -53,6 +53,18 @@
   .card h2::before { content: ""; width: 3px; height: 14px; background: var(--purple); border-radius: 2px; }
   .card .hint { font-size: 12px; color: var(--muted); margin: 0 0 14px 11px; }
 
+  /* 概览统计 */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  @media (max-width: 620px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 13px 15px; box-shadow: 0 2px 10px rgba(109,63,212,.05);
+  }
+  .stat .n { font-size: 24px; font-weight: 700; color: var(--purple-deep); line-height: 1.2; }
+  .stat .n.green { color: var(--ok); }
+  .stat .n.muted { color: var(--muted); }
+  .stat .l { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
   /* 每周固定 */
   .week-row {
     display: grid; grid-template-columns: 62px 1fr auto; gap: 10px;
@@ -84,26 +96,34 @@
 
   /* 未来几天 */
   .day {
-    display: grid; grid-template-columns: 96px 1fr auto; gap: 12px;
-    align-items: center; padding: 11px 0; border-bottom: 1px dashed var(--line);
+    display: grid; grid-template-columns: 84px 1fr auto; gap: 12px;
+    align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--line);
   }
   .day:last-child { border-bottom: none; }
   .day.today { background: linear-gradient(90deg, var(--purple-soft), transparent); border-radius: 10px; padding-left: 10px; }
-  .d-date { font-size: 13px; font-weight: 600; }
+  .d-date { font-size: 13px; font-weight: 600; padding-top: 2px; }
   .d-date small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
   .d-today-tag {
     font-size: 10px; background: var(--purple); color: #fff; padding: 1px 6px;
-    border-radius: 5px; margin-left: 5px; vertical-align: 1px;
+    border-radius: 5px; margin-left: 4px; vertical-align: 1px;
   }
-  .d-body { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
-  .slot {
-    font-size: 12px; background: var(--purple-soft); color: var(--purple-deep);
-    padding: 2px 9px; border-radius: 7px; font-variant-numeric: tabular-nums;
+  .d-body { min-width: 0; }
+  .d-blocks { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .blk {
+    font-size: 12px; padding: 3px 10px; border-radius: 8px;
+    font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px;
   }
-  .d-off { font-size: 12px; color: var(--muted); background: #f3effa; padding: 2px 9px; border-radius: 7px; }
-  .d-ov { font-size: 11px; color: var(--warn); background: var(--warn-bg); padding: 1px 7px; border-radius: 6px; }
-  .d-orders { font-size: 11.5px; color: var(--ok); background: var(--ok-bg); padding: 1px 8px; border-radius: 6px; }
-  .d-actions { display: flex; gap: 6px; }
+  .blk.free { background: var(--ok-bg); color: var(--ok); border: 1px solid #cbeadd; }
+  .blk.taken { background: var(--purple-soft); color: var(--purple-deep); border: 1px solid #dcccf7; }
+  .blk.taken::before { content: "●"; font-size: 8px; }
+  .blk .who { font-size: 11px; opacity: .82; }
+  .d-off { font-size: 12px; color: var(--muted); background: #f3effa; padding: 3px 10px; border-radius: 8px; }
+  .d-note { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+  .d-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+  .d-ov { font-size: 10.5px; color: var(--warn); background: var(--warn-bg); padding: 1px 7px; border-radius: 6px; }
+  .d-full { font-size: 10.5px; color: var(--danger); background: var(--danger-bg); padding: 1px 7px; border-radius: 6px; }
+  .d-cnt { font-size: 10.5px; color: var(--ok); background: var(--ok-bg); padding: 1px 7px; border-radius: 6px; }
+  .d-actions { display: flex; gap: 6px; padding-top: 1px; }
   .btn-s {
     font: inherit; font-size: 12px; padding: 5px 12px; border-radius: 9px;
     border: 1px solid var(--line); background: #fff; color: #6b6478; cursor: pointer;
@@ -184,16 +204,18 @@
   <h1>我的档期</h1>
   <div class="sub">你在这里设的时间，客人问"哪天有空"时 bot 会照这个答。</div>
 
+  <div class="stats" id="stats"></div>
+
   <div class="card">
-    <h2>每周固定时间</h2>
-    <p class="hint">这是默认值。某天时间不一样，去下面「未来三周」单独改，会覆盖这里。</p>
-    <div id="weekly"></div>
+    <h2>接下来三周</h2>
+    <p class="hint">紫色是已约，绿色是还空着。点「改」能调时间或标休息。</p>
+    <div id="days"></div>
   </div>
 
   <div class="card">
-    <h2>未来三周</h2>
-    <p class="hint">每天独立设置。点了「改」就能调时间或标休息。</p>
-    <div id="days"></div>
+    <h2>每周固定时间</h2>
+    <p class="hint">这是默认值。某天时间不一样，去上面点「改」单独设置，会覆盖这里。</p>
+    <div id="weekly"></div>
   </div>
 
   <div class="card">
@@ -238,6 +260,7 @@ async function load() {
   const r = await fetch("/api/schedule").then((x) => x.json());
   if (r.error) { toast("读取失败：" + r.error); return; }
   DATA = r;
+  renderStats();
   renderWeekly();
   renderDays();
   renderOrders();
@@ -302,18 +325,55 @@ async function postWeekly(weekday, ranges) {
 }
 
 /* ---------- 未来三周 ---------- */
+function renderStats() {
+  const days = DATA.days;
+  const open = days.filter((d) => !d.closed);
+  const booked = days.filter((d) => d.orderCount > 0);
+  const free = days.filter((d) => !d.closed && !d.full && d.freeSegments.length);
+  const totalOrders = days.reduce((s, d) => s + d.orderCount, 0);
+  $("stats").innerHTML = `
+    <div class="stat"><div class="n">${totalOrders}</div><div class="l">未来三周预约</div></div>
+    <div class="stat"><div class="n green">${free.length}</div><div class="l">还能约的天数</div></div>
+    <div class="stat"><div class="n">${booked.length}</div><div class="l">已有单的天数</div></div>
+    <div class="stat"><div class="n muted">${open.length}</div><div class="l">营业天数</div></div>`;
+}
+
 function renderDays() {
+  if (!DATA.days.some((d) => !d.closed)) {
+    $("days").innerHTML = `<div class="empty-tip">还没设营业时间。去下面「每周固定时间」填一下。</div>`;
+    return;
+  }
+
   $("days").innerHTML = DATA.days
     .map((d) => {
-      const slots = d.closed
-        ? `<span class="d-off">休息</span>`
-        : d.ranges.map((r) => `<span class="slot">${r[0]}–${r[1]}</span>`).join("");
-      const orders = d.orderCount ? `<span class="d-orders">已约 ${d.orderCount} 单</span>` : "";
-      const ov = d.overridden ? `<span class="d-ov">单独设置</span>` : "";
       const md = d.date.slice(5).replace("-", "/");
+      let body;
+
+      if (d.closed) {
+        body = `<div class="d-blocks"><span class="d-off">休息</span></div>`;
+      } else {
+        const blocks = [
+          ...d.takenSegments.map(
+            (t) => `<span class="blk taken">${t.start}–${t.end} <span class="who">${t.name || ""}</span></span>`
+          ),
+          ...d.freeSegments.map((f) => `<span class="blk free">${f[0]}–${f[1]} 空</span>`),
+        ];
+        const hint = d.tooSoon
+          ? `<span class="d-off">太近了，不满 ${d.noticeHours} 小时不能约</span>`
+          : "";
+        body = `<div class="d-blocks">${blocks.join("") || hint || '<span class="d-off">无可用时段</span>'}</div>`;
+
+        const tags = [];
+        if (d.orderCount) tags.push(`<span class="d-cnt">已约 ${d.orderCount}/${d.maxPerDay}</span>`);
+        if (d.full && d.orderCount) tags.push(`<span class="d-full">已约满</span>`);
+        if (d.overridden) tags.push(`<span class="d-ov">单独设置</span>`);
+        if (tags.length) body += `<div class="d-tags">${tags.join("")}</div>`;
+        if (d.note) body += `<div class="d-note">${d.note}</div>`;
+      }
+
       return `<div class="day${d.isToday ? " today" : ""}">
         <div class="d-date">${md}${d.isToday ? '<span class="d-today-tag">今天</span>' : ""}<small>${d.weekday}</small></div>
-        <div class="d-body">${slots}${orders}${ov}</div>
+        <div class="d-body">${body}</div>
         <div class="d-actions"><button class="btn-s primary" data-edit="${d.date}">改</button></div>
       </div>`;
     })

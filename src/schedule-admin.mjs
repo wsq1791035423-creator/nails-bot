@@ -73,15 +73,63 @@ function effectiveRanges(d, dateStr) {
   return { closed: false, ranges: d.weekly[wd] ?? [], note: "" };
 }
 
-/** 未来 n 天，带实际档期和已约数量 */
+function toMin(t) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+function fmtMin(m) {
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
+/** 从营业时段里扣掉已约的段，算出空闲和占用 */
+function splitDay(ranges, orders) {
+  const free = [];
+  const taken = [];
+  for (const [start, end] of ranges) {
+    let segs = [[toMin(start), toMin(end)]];
+    for (const o of orders) {
+      const bs = toMin(o.start);
+      const be = toMin(o.end);
+      if (be <= toMin(start) || bs >= toMin(end)) continue;
+      taken.push({ start: o.start, end: o.end, name: o.name, style: o.style, id: o.id });
+      const next = [];
+      for (const [s, e] of segs) {
+        if (be <= s || bs >= e) next.push([s, e]);
+        else {
+          if (s < bs) next.push([s, bs]);
+          if (be < e) next.push([be, e]);
+        }
+      }
+      segs = next;
+    }
+    for (const [s, e] of segs) {
+      if (e - s >= 30) free.push([fmtMin(s), fmtMin(e)]);
+    }
+  }
+  taken.sort((a, b) => a.start.localeCompare(b.start));
+  return { free, taken };
+}
+
+/** 未来 n 天，带实际档期、已约时段、剩余空闲 */
 export function upcomingDays(n = 21) {
   const d = load();
   const today = todayStr();
+  const noticeH = d.rules.min_notice_hours ?? 24;
+  const earliest = new Date(Date.now() + noticeH * 3600 * 1000);
   const out = [];
   for (let i = 0; i < n; i++) {
     const date = addDays(today, i);
     const eff = effectiveRanges(d, date);
     const orders = (d.orders || []).filter((o) => o.date === date && ACTIVE.has(o.status));
+    const { free, taken } = splitDay(eff.ranges, orders);
+
+    // 不够提前量的时段不能约，剔除掉（和 bot 的判断保持一致）
+    const bookable = free.filter(
+      ([s]) => new Date(`${date}T${s}:00${TZ}`) >= earliest
+    );
+    const tooSoon = free.length > 0 && bookable.length === 0;
+
+    const maxPerDay = d.rules.max_per_day ?? 2;
     out.push({
       date,
       weekday: WEEK_CN[weekdayOf(date)],
@@ -90,8 +138,16 @@ export function upcomingDays(n = 21) {
       ranges: eff.ranges,
       note: eff.note,
       overridden: !!d.exceptions[date],
-      orders: orders.map((o) => ({ id: o.id, start: o.start, end: o.end, name: o.name, style: o.style })),
+      orders: orders.map((o) => ({
+        id: o.id, start: o.start, end: o.end, name: o.name, style: o.style, status: o.status,
+      })),
       orderCount: orders.length,
+      freeSegments: bookable,
+      takenSegments: taken,
+      tooSoon,
+      noticeHours: noticeH,
+      maxPerDay,
+      full: orders.length >= maxPerDay || (eff.ranges.length > 0 && bookable.length === 0),
     });
   }
   return out;
