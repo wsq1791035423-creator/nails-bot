@@ -6,9 +6,21 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chat } from "./llm.mjs";
 import { getLooks, retryLooks } from "./imagegen.mjs";
+import { readSchedule, saveDay, saveWeekly, cancelOrder, upcomingDays } from "./schedule-admin.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = Number(process.env.PORT ?? 8787);
+
+async function readBody(req) {
+  let raw = "";
+  for await (const chunk of req) raw += chunk;
+  return JSON.parse(raw || "{}");
+}
+
+function json(res, data, code = 200) {
+  res.writeHead(code, { "content-type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify(data));
+}
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -40,6 +52,46 @@ const server = http.createServer(async (req, res) => {
     } catch (e) {
       res.writeHead(500, { "content-type": "application/json; charset=utf-8" });
       res.end(JSON.stringify({ error: String(e.message || e) }));
+    }
+    return;
+  }
+
+  // ---- 档期管理接口 ----
+  if (req.method === "GET" && urlPath === "/api/schedule") {
+    try {
+      json(res, { ...readSchedule(), days: upcomingDays(21) });
+    } catch (e) {
+      json(res, { error: String(e.message || e) }, 500);
+    }
+    return;
+  }
+
+  if (req.method === "POST" && urlPath === "/api/schedule/day") {
+    try {
+      const body = await readBody(req);
+      json(res, saveDay(body));
+    } catch (e) {
+      json(res, { error: String(e.message || e) }, 400);
+    }
+    return;
+  }
+
+  if (req.method === "POST" && urlPath === "/api/schedule/weekly") {
+    try {
+      const body = await readBody(req);
+      json(res, saveWeekly(body));
+    } catch (e) {
+      json(res, { error: String(e.message || e) }, 400);
+    }
+    return;
+  }
+
+  if (req.method === "POST" && urlPath === "/api/orders/cancel") {
+    try {
+      const body = await readBody(req);
+      json(res, cancelOrder(body.id));
+    } catch (e) {
+      json(res, { error: String(e.message || e) }, 400);
     }
     return;
   }
