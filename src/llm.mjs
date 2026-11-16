@@ -235,9 +235,10 @@ function runTool(name, args) {
   if (name === "list_services") {
     const rate = PRICING.rules?.discount?.returning ?? 0.95;
     const returning = !!args.returning;
+    const r2 = (n) => Math.round(n * 100) / 100;
     return {
       services: PRICING.base.map((b) => {
-        const price = returning ? Math.round(b.price * rate) : b.price;
+        const price = returning ? r2(b.price * rate) : b.price;
         const note = returning ? `原价 ${b.price}，老顾客 ${b.price} → ${price}` : "";
         return `${b.id} ${b.name} ¥${price}（${b.duration_min} 分钟标准工时）${note ? "｜" + note : ""}`;
       }),

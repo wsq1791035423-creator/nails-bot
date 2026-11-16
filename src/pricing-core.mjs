@@ -177,25 +177,26 @@ export function quote(pricing, q) {
     }
   }
 
-  // 老顾客折扣：整单打折，四舍五入到整元
+  // 老顾客折扣：整单 ×0.95，保留两位小数，不四舍五入
   let discount = null;
   if (!cancelled && q.returning) {
     const rate = pricing.rules?.discount?.returning ?? 0.95;
     const rateLabel = pricing.rules?.discount?.name || "老顾客";
+    const round2 = (n) => Math.round(n * 100) / 100;
+    const fmt = (n) => (Number.isInteger(n) ? `¥${n}` : `¥${n.toFixed(2)}`);
     const beforeMin = min;
     const beforeMax = max;
-    const newMin = Math.round(min * rate);
-    const newMax = Math.round(max * rate);
-    const savedMin = beforeMin - newMin;
-    const savedMax = beforeMax - newMax;
+    const newMin = round2(min * rate);
+    const newMax = round2(max * rate);
+    const savedMin = round2(beforeMin - newMin);
+    const savedMax = round2(beforeMax - newMax);
     if (savedMin > 0 || savedMax > 0) {
       const zhe = Math.round(rate * 100) / 10;
-      const savedText =
-        savedMin === savedMax ? `¥${savedMin}` : `¥${savedMin}–${savedMax}`;
+      const savedText = savedMin === savedMax ? fmt(savedMin) : `${fmt(savedMin)}–${fmt(savedMax)}`;
       lines.push({
         label: `${rateLabel} ${zhe} 折`,
         amount: `−${savedText}`,
-        note: `${beforeMin === beforeMax ? `¥${beforeMin}` : `¥${beforeMin}–${beforeMax}`} → ${newMin === newMax ? `¥${newMin}` : `¥${newMin}–${newMax}`}`,
+        note: `${fmt(beforeMin)}${beforeMin === beforeMax ? "" : "–" + fmt(beforeMax).slice(1)} → ${fmt(newMin)}${newMin === newMax ? "" : "–" + fmt(newMax).slice(1)}`,
       });
       min = newMin;
       max = newMax;
@@ -203,12 +204,18 @@ export function quote(pricing, q) {
         rate,
         zhe,
         label: rateLabel,
-        beforeText: beforeMin === beforeMax ? `¥${beforeMin}` : `¥${beforeMin}–${beforeMax}`,
-        afterText: newMin === newMax ? `¥${newMin}` : `¥${newMin}–${newMax}`,
+        beforeText: fmt(beforeMin),
+        afterText: fmt(newMin),
         savedText,
       };
     }
   }
+
+  const totalText = cancelled
+    ? "订单取消"
+    : min === max
+      ? fmtNum(min)
+      : `${fmtNum(min)}–${fmtNum(max).replace("¥", "")}`;
 
   return {
     cancelled,
@@ -216,10 +223,16 @@ export function quote(pricing, q) {
     returning: !!q.returning,
     totalMin: cancelled ? null : min,
     totalMax: cancelled ? null : max,
-    totalText: cancelled ? "订单取消" : min === max ? `¥${min}` : `¥${min}–${max}`,
+    totalText,
     durationMin: duration,
     durationText: `约 ${fmtHours(duration * 1.5)}–${fmtHours(duration * 2)} 小时`,
     lines,
     pending,
   };
+}
+
+/** 金额显示：整数不带小数，小数保留两位 */
+export function fmtNum(n) {
+  if (n == null) return "";
+  return Number.isInteger(n) ? `¥${n}` : `¥${n.toFixed(2)}`;
 }
