@@ -210,6 +210,9 @@
   .dline:last-child { border-bottom: none; }
   .dline span { color: var(--muted); flex-shrink: 0; }
   .dline b { font-weight: 600; text-align: right; word-break: break-all; }
+  #qInfo { font-size: 13px; color: #4a4055; }
+  #qInfo b { color: var(--purple-deep); font-size: 15px; }
+  #qInfo .qhint { color: var(--muted); font-size: 11.5px; }
 
   /* 订单 */
   .order {
@@ -281,14 +284,14 @@
 <!-- 点空档快速记一笔 -->
 <div class="sheet" id="quickSheet">
   <div class="sheet-inner quick">
-    <h3>记一笔</h3>
+    <h3 id="qTitle">记一笔预约</h3>
     <div class="sd" id="qInfo"></div>
 
     <input type="hidden" id="qDate">
     <input type="hidden" id="qStart">
 
     <div class="q-row">
-      <input type="text" id="qName" placeholder="客人怎么称呼">
+      <input type="text" id="qName" placeholder="客人叫什么（比如 小美）" autocomplete="off">
     </div>
     <div class="q-row">
       <select id="qHours">
@@ -298,7 +301,7 @@
         <option value="3.5">做 3.5 小时</option>
         <option value="4">做 4 小时</option>
       </select>
-      <input type="text" id="qStyle" placeholder="什么款（可不填）">
+      <input type="text" id="qStyle" placeholder="什么款（可不填）" autocomplete="off">
     </div>
 
     <button class="more-toggle" id="qMoreToggle">＋ 微信、备注</button>
@@ -603,7 +606,7 @@ function openQuick(date, from, to) {
   const d = DATA.days.find((x) => x.date === date);
   $("qDate").value = date;
   $("qStart").value = from;
-  $("qInfo").textContent = `${date.slice(5).replace("-", "/")} ${d?.weekday || ""}　${from} 开始（这段原本空到 ${to}）`;
+  $("qInfo").innerHTML = `<b>${date.slice(5).replace("-", "/")} ${d?.weekday || ""}</b>　${from} 开始<span class="qhint">（这段原本空到 ${to}）</span>`;
   $("qName").value = "";
   $("qStyle").value = "";
   $("qMore").classList.remove("open");
