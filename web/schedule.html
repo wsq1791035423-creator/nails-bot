@@ -128,8 +128,9 @@
     box-shadow: 0 2px 8px rgba(47,158,110,.18);
   }
   .blk.free::after { content: "＋"; font-size: 11px; opacity: .55; margin-left: 1px; }
-  .blk.taken { background: var(--purple-soft); color: var(--purple-deep); border: 1px solid #dcccf7; }
+  .blk.taken { background: var(--purple-soft); color: var(--purple-deep); border: 1px solid #dcccf7; cursor: pointer; transition: .15s; }
   .blk.taken::before { content: "●"; font-size: 8px; }
+  .blk.taken:hover { background: #e2d4fa; border-color: #c4aef2; box-shadow: 0 2px 8px rgba(139,92,246,.18); }
   .blk .who { font-size: 11px; opacity: .82; }
   .d-off { font-size: 12px; color: var(--muted); background: #f3effa; padding: 3px 10px; border-radius: 8px; }
   .d-note { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
@@ -199,6 +200,16 @@
   .more-toggle:hover { color: var(--purple-deep); }
   .q-more { display: none; }
   .q-more.open { display: block; }
+
+  /* 详情行 */
+  .dbody { margin-bottom: 6px; }
+  .dline {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px;
+  }
+  .dline:last-child { border-bottom: none; }
+  .dline span { color: var(--muted); flex-shrink: 0; }
+  .dline b { font-weight: 600; text-align: right; word-break: break-all; }
 
   /* 订单 */
   .order {
@@ -299,6 +310,18 @@
     <div class="sheet-foot">
       <button id="qCancel">取消</button>
       <button class="save" id="qSave">记下</button>
+    </div>
+  </div>
+</div>
+
+<!-- 已约时段详情 -->
+<div class="sheet" id="detailSheet">
+  <div class="sheet-inner quick">
+    <h3 id="dTitle">预约详情</h3>
+    <div class="dbody" id="dBody"></div>
+    <div class="sheet-foot">
+      <button id="dClose">关闭</button>
+      <button class="rest" id="dCancelBtn">取消这单</button>
     </div>
   </div>
 </div>
@@ -499,7 +522,8 @@ function renderDays() {
       } else {
         const blocks = [
           ...d.takenSegments.map(
-            (t) => `<span class="blk taken">${t.start}–${t.end} <span class="who">${t.name || ""}</span></span>`
+            (t) =>
+              `<span class="blk taken" data-order="${t.id}" title="点一下看详情 / 取消">${t.start}–${t.end} <span class="who">${t.name || ""}</span></span>`
           ),
           ...d.freeSegments.map(
             (f) =>
@@ -530,14 +554,49 @@ function renderDays() {
 
   $("days").onclick = (e) => {
     const q = e.target.closest("[data-quick]");
-    if (q) {
-      openQuick(q.dataset.quick, q.dataset.from, q.dataset.to);
-      return;
-    }
+    if (q) { openQuick(q.dataset.quick, q.dataset.from, q.dataset.to); return; }
+    const o = e.target.closest("[data-order]");
+    if (o) { openOrderDetail(o.dataset.order); return; }
     const b = e.target.closest("[data-edit]");
     if (b) openSheet(b.dataset.edit);
   };
 }
+
+/* ---------- 点已约的时段：看详情 / 取消 ---------- */
+let detailId = null;
+
+function openOrderDetail(id) {
+  const o = DATA.orders.find((x) => x.id === id);
+  if (!o) return;
+  detailId = id;
+  $("dTitle").textContent = `${o.date.slice(5).replace("-", "/")} ${o.start}–${o.end}`;
+  $("dBody").innerHTML = `
+    <div class="dline"><span>客人</span><b>${o.name}</b></div>
+    ${o.contact ? `<div class="dline"><span>联系</span><b>${o.contact}</b></div>` : ""}
+    <div class="dline"><span>款式</span><b>${o.style || "待定"}</b></div>
+    ${o.price ? `<div class="dline"><span>价格</span><b>¥${o.price}</b></div>` : ""}
+    ${o.note ? `<div class="dline"><span>备注</span><b>${o.note}</b></div>` : ""}
+    <div class="dline"><span>状态</span><b>${o.statusText}${o.source === "manual" ? "（手记）" : ""}</b></div>`;
+  $("dCancelBtn").style.display = o.status === "cancelled" ? "none" : "";
+  $("detailSheet").classList.add("on");
+}
+
+$("dClose").onclick = () => $("detailSheet").classList.remove("on");
+$("detailSheet").onclick = (e) => { if (e.target === $("detailSheet")) $("detailSheet").classList.remove("on"); };
+
+$("dCancelBtn").onclick = async () => {
+  const o = DATA.orders.find((x) => x.id === detailId);
+  if (!confirm(`确定取消 ${o?.name || ""} 这单？时间会腾出来。`)) return;
+  const r = await fetch("/api/orders/cancel", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id: detailId }),
+  }).then((x) => x.json());
+  if (r.error) { toast(r.error); return; }
+  $("detailSheet").classList.remove("on");
+  toast("已取消，这段时间空出来了");
+  await load();
+};
 
 /* ---------- 点空档直接记一笔 ---------- */
 function openQuick(date, from, to) {
