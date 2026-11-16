@@ -119,7 +119,15 @@
     font-size: 12px; padding: 3px 10px; border-radius: 8px;
     font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px;
   }
-  .blk.free { background: var(--ok-bg); color: var(--ok); border: 1px solid #cbeadd; }
+  .blk.free {
+    background: var(--ok-bg); color: var(--ok); border: 1px solid #cbeadd;
+    cursor: pointer; transition: .15s;
+  }
+  .blk.free:hover {
+    background: #d6f0e4; border-color: #9fd9c3;
+    box-shadow: 0 2px 8px rgba(47,158,110,.18);
+  }
+  .blk.free::after { content: "＋"; font-size: 11px; opacity: .55; margin-left: 1px; }
   .blk.taken { background: var(--purple-soft); color: var(--purple-deep); border: 1px solid #dcccf7; }
   .blk.taken::before { content: "●"; font-size: 8px; }
   .blk .who { font-size: 11px; opacity: .82; }
@@ -174,6 +182,24 @@
   }
   .form-row input:focus, .form-row select:focus { border-color: #b79bf2; }
 
+  /* 快速记一笔 */
+  .sheet-inner.quick { max-width: 420px; }
+  .q-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .q-row input, .q-row select {
+    flex: 1; font: inherit; font-size: 14px; padding: 11px 13px;
+    border: 1px solid var(--line); border-radius: 12px; background: #fff;
+    outline: none; min-width: 0;
+  }
+  .q-row input:focus, .q-row select:focus { border-color: #b79bf2; }
+  .q-row select { flex: 0 0 130px; cursor: pointer; }
+  .more-toggle {
+    background: none; border: 0; color: var(--muted); font: inherit;
+    font-size: 12.5px; cursor: pointer; padding: 2px 0; margin-bottom: 4px;
+  }
+  .more-toggle:hover { color: var(--purple-deep); }
+  .q-more { display: none; }
+  .q-more.open { display: block; }
+
   /* 订单 */
   .order {
     display: grid; grid-template-columns: 1fr auto; gap: 10px;
@@ -223,7 +249,7 @@
 
   <div class="card">
     <h2>接下来三周</h2>
-    <p class="hint">紫色是已约，绿色是还空着。点「改」能调时间或标休息。</p>
+    <p class="hint">紫色是已约，绿色是还空着。<b>点绿色的空档就能记一笔</b>；点「改」调营业时间。</p>
     <div id="days"></div>
   </div>
 
@@ -238,6 +264,42 @@
     <p class="hint">客人自己约的、你私下接的，都记在这里。记了之后那段时间就不会再被约。</p>
     <button class="btn-s primary btn-lg" id="addOrder" style="margin-bottom:14px">＋ 手动记一笔预约</button>
     <div id="orders"></div>
+  </div>
+</div>
+
+<!-- 点空档快速记一笔 -->
+<div class="sheet" id="quickSheet">
+  <div class="sheet-inner quick">
+    <h3>记一笔</h3>
+    <div class="sd" id="qInfo"></div>
+
+    <input type="hidden" id="qDate">
+    <input type="hidden" id="qStart">
+
+    <div class="q-row">
+      <input type="text" id="qName" placeholder="客人怎么称呼">
+    </div>
+    <div class="q-row">
+      <select id="qHours">
+        <option value="2">做 2 小时</option>
+        <option value="2.5" selected>做 2.5 小时</option>
+        <option value="3">做 3 小时</option>
+        <option value="3.5">做 3.5 小时</option>
+        <option value="4">做 4 小时</option>
+      </select>
+      <input type="text" id="qStyle" placeholder="什么款（可不填）">
+    </div>
+
+    <button class="more-toggle" id="qMoreToggle">＋ 微信、备注</button>
+    <div class="q-more" id="qMore">
+      <div class="q-row"><input type="text" id="qContact" placeholder="微信 / 手机"></div>
+      <div class="q-row"><input type="text" id="qNote" placeholder="备注：过敏、特殊要求…"></div>
+    </div>
+
+    <div class="sheet-foot">
+      <button id="qCancel">取消</button>
+      <button class="save" id="qSave">记下</button>
+    </div>
   </div>
 </div>
 
@@ -439,7 +501,10 @@ function renderDays() {
           ...d.takenSegments.map(
             (t) => `<span class="blk taken">${t.start}–${t.end} <span class="who">${t.name || ""}</span></span>`
           ),
-          ...d.freeSegments.map((f) => `<span class="blk free">${f[0]}–${f[1]} 空</span>`),
+          ...d.freeSegments.map(
+            (f) =>
+              `<span class="blk free" data-quick="${d.date}" data-from="${f[0]}" data-to="${f[1]}" title="点一下记一笔">${f[0]}–${f[1]} 空</span>`
+          ),
         ];
         const hint = d.tooSoon
           ? `<span class="d-off">太近了，不满 ${d.noticeHours} 小时不能约</span>`
@@ -464,10 +529,59 @@ function renderDays() {
     .join("");
 
   $("days").onclick = (e) => {
+    const q = e.target.closest("[data-quick]");
+    if (q) {
+      openQuick(q.dataset.quick, q.dataset.from, q.dataset.to);
+      return;
+    }
     const b = e.target.closest("[data-edit]");
     if (b) openSheet(b.dataset.edit);
   };
 }
+
+/* ---------- 点空档直接记一笔 ---------- */
+function openQuick(date, from, to) {
+  const d = DATA.days.find((x) => x.date === date);
+  $("qDate").value = date;
+  $("qStart").value = from;
+  $("qInfo").textContent = `${date.slice(5).replace("-", "/")} ${d?.weekday || ""}　${from} 开始（这段原本空到 ${to}）`;
+  $("qName").value = "";
+  $("qStyle").value = "";
+  $("qMore").classList.remove("open");
+  $("quickSheet").classList.add("on");
+  setTimeout(() => $("qName").focus(), 180);
+}
+
+$("qCancel").onclick = () => $("quickSheet").classList.remove("on");
+$("quickSheet").onclick = (e) => { if (e.target === $("quickSheet")) $("quickSheet").classList.remove("on"); };
+
+$("qMoreToggle").onclick = () => {
+  $("qMore").classList.toggle("open");
+  if ($("qMore").classList.contains("open")) setTimeout(() => $("qContact").focus(), 150);
+};
+
+$("qSave").onclick = async () => {
+  const name = $("qName").value.trim();
+  if (!name) { toast("填个称呼就行"); $("qName").focus(); return; }
+  const body = {
+    date: $("qDate").value,
+    start: $("qStart").value,
+    hours: Number($("qHours").value),
+    name,
+    contact: $("qContact").value,
+    style: $("qStyle").value,
+    note: $("qNote").value,
+  };
+  const r = await fetch("/api/orders/create", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((x) => x.json());
+  if (r.error) { toast(r.error); return; }
+  $("quickSheet").classList.remove("on");
+  toast(r.warning || r.summary);
+  await load();
+};
 
 /* ---------- 编辑弹层 ---------- */
 function openSheet(date) {
