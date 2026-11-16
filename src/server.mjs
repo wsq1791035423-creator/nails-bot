@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chat } from "./llm.mjs";
 import { getLooks, retryLooks } from "./imagegen.mjs";
-import { readSchedule, saveDay, saveWeekly, cancelOrder, upcomingDays } from "./schedule-admin.mjs";
+import { readSchedule, saveDay, saveWeekly, cancelOrder, createOrder, upcomingDays } from "./schedule-admin.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = Number(process.env.PORT ?? 8787);
@@ -90,6 +90,16 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = await readBody(req);
       json(res, cancelOrder(body.id));
+    } catch (e) {
+      json(res, { error: String(e.message || e) }, 400);
+    }
+    return;
+  }
+
+  if (req.method === "POST" && urlPath === "/api/orders/create") {
+    try {
+      const body = await readBody(req);
+      json(res, createOrder(body));
     } catch (e) {
       json(res, { error: String(e.message || e) }, 400);
     }

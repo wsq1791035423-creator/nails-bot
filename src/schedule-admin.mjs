@@ -197,3 +197,76 @@ export function cancelOrder(id) {
   save(d);
   return { ok: true, summary: `已取消 ${o.id}（${o.date} ${o.start} ${o.name}）` };
 }
+
+function nextOrderId(d) {
+  const nums = (d.orders || [])
+    .map((o) => Number(String(o.id).replace(/\D/g, "")))
+    .filter((n) => !Number.isNaN(n));
+  const n = (nums.length ? Math.max(...nums) : 0) + 1;
+  return "O" + String(n).padStart(3, "0");
+}
+
+/** 店主手动补录一单（客人是微信/当面约的） */
+export function createOrder({ date, start, hours, name, contact, style, price, note }) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return { error: "日期格式不对" };
+  if (!/^\d{2}:\d{2}$/.test(start || "")) return { error: "时间格式不对，要 14:30 这种" };
+  if (!name || !String(name).trim()) return { error: "客人的称呼填一下吧" };
+
+  const d = load();
+  const dur = Number(hours) || d.rules.slot_hours || 2.5;
+  const [h, m] = start.split(":").map(Number);
+  const endMin = h * 60 + m + Math.round(dur * 60);
+  const end = fmtMin(endMin);
+  if (endMin > 24 * 60) return { error: "结束时间超过 24 点了，时长或开始时间改一下" };
+
+  const warnings = [];
+
+  // 撞单检查
+  const clash = (d.orders || []).find(
+    (o) => o.date === date && ACTIVE.has(o.status) && toMin(start) < toMin(o.end) && toMin(o.start) < endMin
+  );
+  if (clash) {
+    return {
+      error: `${date} ${clash.start}–${clash.end} 已经排了${clash.name}（${clash.style || "款式待定"}），时间重叠了`,
+    };
+  }
+
+  // 当天没排班时提醒，但不拦着
+  const eff = effectiveRanges(d, date);
+  if (eff.closed || eff.ranges.length === 0) {
+    warnings.push("这天你原本设的是休息，记得在档期里把它改成营业");
+  } else {
+    const inside = eff.ranges.some(([s, e]) => toMin(start) >= toMin(s) && endMin <= toMin(e));
+    if (!inside) warnings.push(`这单 ${start}–${end} 不在你设的营业时间内（${eff.ranges.map((r) => r[0] + "–" + r[1]).join("、")}）`);
+  }
+
+  const maxPerDay = d.rules.max_per_day ?? 2;
+  const sameDay = (d.orders || []).filter((o) => o.date === date && ACTIVE.has(o.status)).length;
+  if (sameDay >= maxPerDay) warnings.push(`这天已经有 ${sameDay} 单，超过你设的每天 ${maxPerDay} 单上限了`);
+
+  const entry = {
+    id: nextOrderId(d),
+    date,
+    start,
+    end,
+    name: String(name).trim(),
+    contact: (contact || "").trim(),
+    style: (style || "").trim(),
+    price: price === "" || price == null ? null : Number(price),
+    shape: "",
+    hours: dur,
+    note: (note || "").trim(),
+    status: "confirmed", // 店主自己录的，默认已确认
+    source: "manual",
+    createdAt: new Date().toISOString(),
+  };
+  d.orders.push(entry);
+  save(d);
+
+  return {
+    ok: true,
+    orderId: entry.id,
+    summary: `已记录：${date} ${start}–${end}，${entry.name}，${entry.style || "款式待定"}`,
+    warning: warnings.length ? warnings.join("；") : null,
+  };
+}
