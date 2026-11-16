@@ -21,6 +21,15 @@ const ACETATE_EXAMPLES = ["acetate_02.jpeg", "acetate_03.jpeg", "acetate_04.jpeg
     type: "image_url",
     image_url: { url: `data:image/jpeg;base64,${fs.readFileSync(p).toString("base64")}` },
   }));
+
+// 手绘参考样本：手绘经常被波点/法式盖过去认不出来，给两个例子
+const HANDDRAW_EXAMPLES = ["013_手绘渐变腮红法式猫眼.jpeg", "017_卡通法式.jpeg"]
+  .map((f) => path.join(ROOT, "data", "styles", f))
+  .filter((p) => fs.existsSync(p))
+  .map((p) => ({
+    type: "image_url",
+    image_url: { url: `data:image/jpeg;base64,${fs.readFileSync(p).toString("base64")}` },
+  }));
 const STYLES = fs
   .readFileSync(path.join(ROOT, "knowledge", "03_styles.jsonl"), "utf8")
   .split("\n")
@@ -84,7 +93,10 @@ const PROMPT = `你是美甲款式识别器。看这张图，只输出一个 JSO
 
   重要：说不清"从哪个颜色过渡到哪个颜色"，就不要写渐变。
   拿不准就不写——少算钱，客人到店你自己核实；多算了客人拿着截图来对，更麻烦。
-- 手绘：能看到笔触、线条、图案
+- 手绘：甲面上有"画上去"的图案——线条、小花、蝴蝶、字母、小动物、简笔画、卡通形象。
+  只要能看出是用笔画的（不是贴上去的钻、不是胶做的立体），就要标手绘。
+  注意：手绘经常和波点、法式、渐变混在一起出现，看到图案就单独加一个「手绘」，别被别的元素盖过去。
+  宁可标，不要漏——漏了报价会少算。
 
 甲型怎么判断（先看指尖，再看两侧）：
 先问一句：指尖有没有往中间收、有没有尖的趋势？
@@ -121,6 +133,9 @@ export async function analyzeImage(base64, mime = "image/jpeg") {
         content: [
           ...(ACETATE_EXAMPLES.length
             ? [{ type: "text", text: "下面 3 张是【醋酸】款式的样子：指甲上贴着半透明、有厚度的果冻质感片/球/花。只作参考。" }, ...ACETATE_EXAMPLES]
+            : []),
+          ...(HANDDRAW_EXAMPLES.length
+            ? [{ type: "text", text: "下面 2 张是【手绘】的样子：甲面上有画上去的图案、线条、卡通形象。只作参考。" }, ...HANDDRAW_EXAMPLES]
             : []),
           { type: "text", text: PROMPT },
           { type: "image_url", image_url: { url: `data:${mime};base64,${base64}` } },
