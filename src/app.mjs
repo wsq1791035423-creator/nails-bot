@@ -1,4 +1,4 @@
-// HTTP 路由处理：本地由 src/server.mjs 调用，云端由 api/index.js 调用。
+﻿// HTTP 路由处理：本地由 src/server.mjs 调用，云端由 api/index.js 调用。
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,6 +35,10 @@ const MIME = {
 };
 
 export async function handle(req, res) {
+  if (urlPath === "/api/__files") {
+    const ls = (d) => { try { return fs.readdirSync(d).slice(0, 20); } catch (e) { return "ERR:" + e.message; } };
+    return json(res, { cwd: process.cwd(), root: ROOT, cwdList: ls(process.cwd()), rootList: ls(ROOT), web: ls(path.join(ROOT, "web")), kn: ls(path.join(ROOT, "knowledge")) });
+  }
   const urlPath = decodeURIComponent((req.url ?? "/").split("?")[0]);
 
   // ---- 对话接口 ----
@@ -138,3 +142,4 @@ export async function handle(req, res) {
   fs.createReadStream(file).pipe(res);
 }
 export default handle;
+
