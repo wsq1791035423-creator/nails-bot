@@ -8,3 +8,5 @@ data/backups/
 .tmp/
 __pycache__/
 *.pyc
+.vercel
+public/
