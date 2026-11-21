@@ -6,7 +6,7 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 60,
-      "includeFiles": "{web,knowledge,data}/**"
+      "includeFiles": ["web/**", "knowledge/**", "data/**"]
     }
   }
 }
