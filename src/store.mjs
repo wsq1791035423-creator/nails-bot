@@ -10,8 +10,25 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
-const CONFIG_FILE = path.join(ROOT, "knowledge", "schedule.json");
-const ORDERS_FILE = path.join(ROOT, "data", "orders.json");
+const BUNDLED_CONFIG = path.join(ROOT, "knowledge", "schedule.json");
+
+// 云端（Vercel）只有 /tmp 可写：配置首次从仓库复制过去，订单落在 /tmp。
+const SERVERLESS = !!process.env.VERCEL;
+const CONFIG_FILE = SERVERLESS ? "/tmp/schedule.json" : BUNDLED_CONFIG;
+const ORDERS_FILE = SERVERLESS ? "/tmp/orders.json" : path.join(ROOT, "data", "orders.json");
+
+function seedServerless() {
+  if (!SERVERLESS) return;
+  try {
+    if (!fs.existsSync(CONFIG_FILE) && fs.existsSync(BUNDLED_CONFIG)) {
+      fs.mkdirSync(path.dirname(CONFIG_FILE), { recursive: true });
+      fs.copyFileSync(BUNDLED_CONFIG, CONFIG_FILE);
+    }
+  } catch {
+    /* 只读环境忽略 */
+  }
+}
+seedServerless();
 
 function ensureDir(p) {
   fs.mkdirSync(path.dirname(p), { recursive: true });
