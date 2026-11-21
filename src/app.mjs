@@ -137,3 +137,4 @@ export async function handle(req, res) {
   });
   fs.createReadStream(file).pipe(res);
 }
+export default handle;
