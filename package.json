@@ -1,0 +1,13 @@
+{
+  "name": "nails-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "校园美甲 AI 接待 Bot：报价、识图、推荐、档期与预约",
+  "scripts": {
+    "start": "node src/server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

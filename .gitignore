@@ -1,8 +1,7 @@
-node_modules/
+﻿node_modules/
 .env
 .env.*
 !.env.example
-data/styles/web/
 data/orders.json
 data/backups/
 *.log
