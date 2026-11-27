@@ -1,4 +1,4 @@
-// 档期 + 订单：查空位、下订单、改约、取消
+﻿// 档期 + 订单：查空位、下订单、改约、取消
 import { loadAll, saveAll } from "./store.mjs";
 
 const TZ_OFFSET = "+08:00";
@@ -13,11 +13,11 @@ const STATUS_CN = {
   done: "已完成",
 };
 
-function load() {
-  return loadAll();
+async function load() {
+  return await loadAll();
 }
-function save(data) {
-  saveAll(data);
+async function save(data) {
+  await saveAll(data);
 }
 function toDate(s) {
   return new Date(`${s}T12:00:00${TZ_OFFSET}`);
@@ -59,8 +59,8 @@ function subtract(start, end, busy) {
   return segs.map(([s, e]) => [fmtMin(s), fmtMin(e)]);
 }
 
-export function checkSlots(dateStr) {
-  const data = load();
+export async function checkSlots(dateStr) {
+  const data = await load();
   const today = todayStr();
   const maxDay = addDays(today, data.rules.max_days_ahead);
 
@@ -102,12 +102,12 @@ export function checkSlots(dateStr) {
   };
 }
 
-export function upcoming(days = 7) {
+export async function upcoming(days = 7) {
   const today = todayStr();
   const out = [];
   for (let i = 0; i < days; i++) {
     const d = addDays(today, i);
-    const r = checkSlots(d);
+    const r = await checkSlots(d);
     if (!r.closed && r.available?.length) out.push({ date: d, weekday: r.weekday, weekdayText: r.weekdayText, free: r.freeText });
   }
   return out;
@@ -118,8 +118,8 @@ function nextId(data) {
   return "O" + String(n).padStart(3, "0");
 }
 
-export function bookSlot({ date, start, name, contact, style, hours, price, shape, note }) {
-  const data = load();
+export async function bookSlot({ date, start, name, contact, style, hours, price, shape, note }) {
+  const data = await load();
   const today = todayStr();
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "日期格式不对" };
   if (date < today) return { error: "不能约过去的时间" };
@@ -130,7 +130,7 @@ export function bookSlot({ date, start, name, contact, style, hours, price, shap
     return { error: `需要提前至少 ${noticeH} 小时约（至少提前一天）` };
   }
 
-  const info = checkSlots(date);
+  const info = await checkSlots(date);
   if (info.closed) return { error: info.reason || "这天不接单" };
 
   const dur = Number(hours) || data.rules.slot_hours || 2.5;
@@ -143,7 +143,7 @@ export function bookSlot({ date, start, name, contact, style, hours, price, shap
     if (contact && hit.contact === contact && hit.start === start) {
       return { ok: true, already: true, orderId: hit.id, summary: `已经登记过了：${date} ${hit.start}–${hit.end}，${hit.name}，${STATUS_CN[hit.status]}` };
     }
-    const left = checkSlots(date);
+    const left = await checkSlots(date);
     return { error: `${date} ${hit.start}–${hit.end} 已经约出去了`, available: left.available, freeText: left.freeText };
   }
 
@@ -167,7 +167,7 @@ export function bookSlot({ date, start, name, contact, style, hours, price, shap
     createdAt: new Date().toISOString(),
   };
   data.orders.push(entry);
-  save(data);
+  await save(data);
 
   return {
     ok: true,
@@ -179,8 +179,8 @@ export function bookSlot({ date, start, name, contact, style, hours, price, shap
 }
 
 /** 按订单号或联系方式找订单 */
-export function findOrders({ orderId, contact, name } = {}) {
-  const data = load();
+export async function findOrders({ orderId, contact, name } = {}) {
+  const data = await load();
   return (data.orders || []).filter((o) => {
     if (orderId && o.id === orderId) return true;
     if (contact && o.contact === contact) return true;
@@ -189,8 +189,8 @@ export function findOrders({ orderId, contact, name } = {}) {
   });
 }
 
-export function updateOrder({ orderId, contact, action, newDate, newStart, note }) {
-  const data = load();
+export async function updateOrder({ orderId, contact, action, newDate, newStart, note }) {
+  const data = await load();
   const order = (data.orders || []).find(
     (o) => (orderId && o.id === orderId) || (contact && o.contact === contact && o.status !== "cancelled")
   );
@@ -199,13 +199,13 @@ export function updateOrder({ orderId, contact, action, newDate, newStart, note 
   if (action === "cancel") {
     order.status = "cancelled";
     order.cancelledAt = new Date().toISOString();
-    save(data);
+    await save(data);
     return { ok: true, summary: `已取消 ${order.id}（${order.date} ${order.start}）`, status: STATUS_CN.cancelled };
   }
 
   if (action === "reschedule") {
     if (!newDate || !newStart) return { error: "改约要给我新的日期和时间" };
-    const info = checkSlots(newDate);
+    const info = await checkSlots(newDate);
     if (info.closed) return { error: `新时间不行：${info.reason || "那天没空位"}` };
     const dur = order.hours || 2.5;
     const end = fmtMin(toMin(newStart) + Math.round(dur * 60));
@@ -218,21 +218,21 @@ export function updateOrder({ orderId, contact, action, newDate, newStart, note 
     order.end = end;
     order.status = "rescheduled";
     order.note = [order.note, note].filter(Boolean).join("；");
-    save(data);
+    await save(data);
     return { ok: true, summary: `已改到 ${newDate} ${newStart}–${end}`, status: STATUS_CN.rescheduled };
   }
 
   if (action === "confirm") {
     order.status = "confirmed";
-    save(data);
+    await save(data);
     return { ok: true, summary: `已确认 ${order.id}`, status: STATUS_CN.confirmed };
   }
 
   return { error: `不认识的 action：${action}` };
 }
 
-export function listOrders({ date } = {}) {
-  const data = load();
+export async function listOrders({ date } = {}) {
+  const data = await load();
   const list = (data.orders || []).filter((o) => !date || o.date === date);
   return list.map((o) => ({
     id: o.id,

@@ -1,40 +1,54 @@
-// 数据读写：把「配置」和「订单」彻底分开
+// 数据读写：配置 + 订单
 //
-//   knowledge/schedule.json  → 营业时间、例外日、规则（跟代码一起进 git）
-//   data/orders.json         → 订单数据（不进 git，只有本机有）
+// 本地：写文件（knowledge/schedule.json、data/orders.json）
+// Vercel：写 Vercel KV（Upstash Redis），靠 KV_REST_API_URL / KV_REST_API_TOKEN 两个环境变量
 //
-// 这样改代码、切分支、拉远程都不会碰订单。
+// 两套实现对外都是 async，调用方统一 await。
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
-const BUNDLED_CONFIG = path.join(ROOT, "knowledge", "schedule.json");
+const CONFIG_FILE = path.join(ROOT, "knowledge", "schedule.json");
+const ORDERS_FILE = path.join(ROOT, "data", "orders.json");
 
-// 云端（Vercel）只有 /tmp 可写：配置首次从仓库复制过去，订单落在 /tmp。
-const SERVERLESS = !!process.env.VERCEL;
-const CONFIG_FILE = SERVERLESS ? "/tmp/schedule.json" : BUNDLED_CONFIG;
-const ORDERS_FILE = SERVERLESS ? "/tmp/orders.json" : path.join(ROOT, "data", "orders.json");
+const KV_URL = process.env.KV_REST_API_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+export const useKV = Boolean(KV_URL && KV_TOKEN);
 
-function seedServerless() {
-  if (!SERVERLESS) return;
-  try {
-    if (!fs.existsSync(CONFIG_FILE) && fs.existsSync(BUNDLED_CONFIG)) {
-      fs.mkdirSync(path.dirname(CONFIG_FILE), { recursive: true });
-      fs.copyFileSync(BUNDLED_CONFIG, CONFIG_FILE);
-    }
-  } catch {
-    /* 只读环境忽略 */
-  }
+const DEFAULT_CONFIG = {
+  weekly: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
+  exceptions: {},
+  rules: { min_notice_hours: 24, max_days_ahead: 30, max_per_day: 2, slot_hours: 2.5 },
+};
+
+// ---------- KV 读写（零依赖，直接打 Upstash REST）----------
+async function kvGet(key) {
+  const r = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, {
+    headers: { authorization: `Bearer ${KV_TOKEN}` },
+    cache: "no-store",
+  });
+  if (!r.ok) throw new Error(`KV 读取失败 ${r.status}`);
+  const j = await r.json();
+  return j.result == null ? null : j.result;
 }
-seedServerless();
 
+async function kvSet(key, value) {
+  const r = await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${KV_TOKEN}`, "content-type": "text/plain" },
+    body: value,
+  });
+  if (!r.ok) throw new Error(`KV 写入失败 ${r.status}`);
+}
+
+// ---------- 本地文件读写 ----------
 function ensureDir(p) {
   fs.mkdirSync(path.dirname(p), { recursive: true });
 }
 
-function readJson(file, fallback) {
+function readFileJson(file, fallback) {
   try {
     if (!fs.existsSync(file)) return fallback;
     return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -43,73 +57,97 @@ function readJson(file, fallback) {
   }
 }
 
-/** 读配置（不含订单） */
-export function readConfig() {
-  const cfg = readJson(CONFIG_FILE, null);
-  if (!cfg) {
-    return {
-      weekly: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
-      exceptions: {},
-      rules: { min_notice_hours: 24, max_days_ahead: 30, max_per_day: 2, slot_hours: 2.5 },
-    };
+// ---------- 对外：配置 ----------
+export async function readConfig() {
+  let raw = null;
+  if (useKV) {
+    raw = await kvGet("schedule:config");
+  } else {
+    raw = readFileJson(CONFIG_FILE, null);
   }
-  // 兼容老文件：orders 曾经混在里面
+  let cfg;
+  try {
+    cfg = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : null;
+  } catch {
+    cfg = null;
+  }
+  if (!cfg) return { ...DEFAULT_CONFIG, exceptions: {} };
   const { orders, ...rest } = cfg;
   if (!rest.exceptions) rest.exceptions = {};
   return rest;
 }
 
-/** 写配置（不含订单） */
-export function writeConfig(cfg) {
+export async function writeConfig(cfg) {
   const clean = { ...cfg };
   delete clean.orders;
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(clean, null, 2), "utf8");
+  const text = JSON.stringify(clean, null, 2);
+  if (useKV) {
+    await kvSet("schedule:config", text);
+    return;
+  }
+  fs.writeFileSync(CONFIG_FILE, text, "utf8");
 }
 
-/** 读订单 */
-export function readOrders() {
-  let list = readJson(ORDERS_FILE, []);
-  if (!Array.isArray(list)) list = [];
-
-  // 从老文件迁移一次
-  const cfg = readJson(CONFIG_FILE, null);
-  if (cfg && Array.isArray(cfg.orders) && cfg.orders.length) {
-    const ids = new Set(list.map((o) => o.id));
-    const moved = cfg.orders.filter((o) => !ids.has(o.id));
-    if (moved.length) {
-      list = list.concat(moved);
-      writeOrders(list);
+// ---------- 对外：订单 ----------
+export async function readOrders() {
+  let list;
+  if (useKV) {
+    const raw = await kvGet("schedule:orders");
+    try {
+      list = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : [];
+    } catch {
+      list = [];
+    }
+  } else {
+    list = readFileJson(ORDERS_FILE, []);
+    // 老版本把订单混在配置里，迁移一次
+    const cfg = readFileJson(CONFIG_FILE, null);
+    if (cfg && Array.isArray(cfg.orders) && cfg.orders.length) {
+      const ids = new Set(list.map((o) => o.id));
+      const moved = cfg.orders.filter((o) => !ids.has(o.id));
+      if (moved.length) {
+        list = list.concat(moved);
+        writeOrdersSync(list);
+      }
     }
   }
-  return list;
+  return Array.isArray(list) ? list : [];
 }
 
-/** 写订单 */
-export function writeOrders(list) {
+function writeOrdersSync(list) {
   ensureDir(ORDERS_FILE);
   fs.writeFileSync(ORDERS_FILE, JSON.stringify(list, null, 2), "utf8");
 }
 
-/** 备份一份，防止误操作丢数据 */
+export async function writeOrders(list) {
+  const text = JSON.stringify(list, null, 2);
+  if (useKV) {
+    await kvSet("schedule:orders", text);
+    return;
+  }
+  writeOrdersSync(list);
+}
+
+// ---------- 合计 ----------
+export async function loadAll() {
+  const [cfg, orders] = await Promise.all([readConfig(), readOrders()]);
+  return { ...cfg, orders };
+}
+
+export async function saveAll(d) {
+  const orders = d.orders || [];
+  await Promise.all([writeOrders(orders), writeConfig(d)]);
+}
+
+// 本地备份（Vercel 上不适用，直接跳过）
 export function backupOrders() {
-  const list = readOrders();
-  if (!list.length) return null;
+  if (useKV) return null;
+  const list = readFileJson(ORDERS_FILE, []);
+  if (!Array.isArray(list) || !list.length) return null;
   const dir = path.join(ROOT, "data", "backups");
   ensureDir(path.join(dir, "x"));
   const stamp = new Date(Date.now() + 8 * 3600e3).toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const file = path.join(dir, `orders-${stamp}.json`);
   fs.writeFileSync(file, JSON.stringify(list, null, 2), "utf8");
   return file;
-}
-
-/** 合在一起返回，给旧代码用 */
-export function loadAll() {
-  return { ...readConfig(), orders: readOrders() };
-}
-
-/** 保存：自动分辨哪部分变了 */
-export function saveAll(d) {
-  const orders = d.orders || [];
-  writeOrders(orders);
-  writeConfig(d);
 }

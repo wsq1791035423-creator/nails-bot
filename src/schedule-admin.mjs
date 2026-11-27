@@ -1,17 +1,17 @@
-// 档期管理：店主自己设置营业时间、休息日、取消预约
+﻿// 档期管理：店主自己设置营业时间、休息日、取消预约
 import { loadAll, saveAll } from "./store.mjs";
 
 const WEEK_CN = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const TZ = "+08:00";
 const ACTIVE = new Set(["pending", "confirmed", "rescheduled"]);
 
-function load() {
-  const d = loadAll();
+async function load() {
+  const d = await loadAll();
   if (!d.exceptions) d.exceptions = {};
   return d;
 }
-function save(d) {
-  saveAll(d);
+async function save(d) {
+  await saveAll(d);
 }
 function todayStr() {
   return new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
@@ -29,8 +29,8 @@ function validRange(r) {
 }
 
 /** 读完整档期 */
-export function readSchedule() {
-  const d = load();
+export async function readSchedule() {
+  const d = await load();
   return {
     weekly: d.weekly,
     exceptions: d.exceptions,
@@ -105,8 +105,8 @@ function splitDay(ranges, orders) {
 }
 
 /** 未来 n 天，带实际档期、已约时段、剩余空闲 */
-export function upcomingDays(n = 21) {
-  const d = load();
+export async function upcomingDays(n = 21) {
+  const d = await load();
   const today = todayStr();
   const noticeH = d.rules.min_notice_hours ?? 24;
   const earliest = new Date(Date.now() + noticeH * 3600 * 1000);
@@ -148,15 +148,15 @@ export function upcomingDays(n = 21) {
 }
 
 /** 保存某一天的档期（写进 exceptions） */
-export function saveDay({ date, closed, ranges, note }) {
+export async function saveDay({ date, closed, ranges, note }) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return { error: "日期格式不对" };
-  const d = load();
+  const d = await load();
 
   if (closed) {
     // 这天已有订单时提醒
     const busy = (d.orders || []).filter((o) => o.date === date && ACTIVE.has(o.status));
     d.exceptions[date] = { closed: true, note: note || "休息" };
-    save(d);
+    await save(d);
     return {
       ok: true,
       warning: busy.length ? `注意：这天还有 ${busy.length} 个未完成的预约，记得通知客人改期` : null,
@@ -166,29 +166,29 @@ export function saveDay({ date, closed, ranges, note }) {
   const clean = (ranges || []).filter(validRange);
   if (!clean.length) return { error: "至少要留一个有效的时间段（开始 < 结束）" };
   d.exceptions[date] = { ranges: clean, note: note || "" };
-  save(d);
+  await save(d);
   return { ok: true };
 }
 
 /** 设置每周固定营业时间 */
-export function saveWeekly({ weekday, ranges }) {
+export async function saveWeekly({ weekday, ranges }) {
   const wd = String(weekday);
   if (!/^[0-6]$/.test(wd)) return { error: "weekday 要是 0–6" };
   const clean = (ranges || []).filter(validRange);
-  const d = load();
+  const d = await load();
   d.weekly[wd] = clean;
-  save(d);
+  await save(d);
   return { ok: true, weekday: wd, ranges: clean };
 }
 
 /** 取消预约 */
-export function cancelOrder(id) {
-  const d = load();
+export async function cancelOrder(id) {
+  const d = await load();
   const o = (d.orders || []).find((x) => x.id === id);
   if (!o) return { error: "没找到这个预约" };
   o.status = "cancelled";
   o.cancelledAt = new Date().toISOString();
-  save(d);
+  await save(d);
   return { ok: true, summary: `已取消 ${o.id}（${o.date} ${o.start} ${o.name}）` };
 }
 
@@ -201,12 +201,12 @@ function nextOrderId(d) {
 }
 
 /** 店主手动补录一单（客人是微信/当面约的） */
-export function createOrder({ date, start, hours, name, contact, style, price, note }) {
+export async function createOrder({ date, start, hours, name, contact, style, price, note }) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return { error: "日期格式不对" };
   if (!/^\d{2}:\d{2}$/.test(start || "")) return { error: "时间格式不对，要 14:30 这种" };
   if (!name || !String(name).trim()) return { error: "客人的称呼填一下吧" };
 
-  const d = load();
+  const d = await load();
   const dur = Number(hours) || d.rules.slot_hours || 2.5;
   const [h, m] = start.split(":").map(Number);
   const endMin = h * 60 + m + Math.round(dur * 60);
@@ -255,7 +255,7 @@ export function createOrder({ date, start, hours, name, contact, style, price, n
     createdAt: new Date().toISOString(),
   };
   d.orders.push(entry);
-  save(d);
+  await save(d);
 
   return {
     ok: true,

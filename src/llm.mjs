@@ -1,4 +1,4 @@
-// LLM 调用 + 工具循环
+﻿// LLM 调用 + 工具循环
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,7 +7,6 @@ import { recommend, priceForStyle } from "./recommend-core.mjs";
 import { systemPrompt } from "./prompts.mjs";
 import { checkSlots, bookSlot, upcoming, todayStr, updateOrder, findOrders, listOrders } from "./schedule.mjs";
 import { analyzeImage } from "./vision.mjs";
-import { startLooks, getLooks } from "./imagegen.mjs";
 import { beautyContext } from "./knowledge.mjs";
 
 function visionContext(v) {
@@ -154,27 +153,28 @@ export const TOOLS = [
   {
     type: "function",
     function: {
-      name: "generate_looks",
+      name: "search_styles",
       description:
-        "根据客人的颜色和风格偏好，生成 2 张美甲效果图给她看。调用前必须已经问清颜色和风格。生成要 1 分钟左右，调用后要告诉客人正在画。",
+        "从款式库里挑 3 款给客人看，会返回带图的卡片。客人说「帮我推荐」「想要XX风格」「有什么好看的」时调用。",
       parameters: {
         type: "object",
         properties: {
-          color: { type: "string", description: "主色，比如 裸色、粉、红、蓝绿、黑、白、紫、银" },
-          styles: {
+          skin: { type: "string", enum: ["黄黑", "冷白"], description: "客人肤色，她说手黄手黑就填 黄黑" },
+          length: { type: "string", enum: ["短", "中", "中长", "长"], description: "想要的甲长" },
+          occasion: { type: "string", enum: ["日常", "通勤", "约会", "婚礼", "拍照"], description: "主要场合" },
+          budget: { type: "number", description: "预算上限，单位元" },
+          keywords: {
             type: "array",
             items: { type: "string" },
-            description: "做法，比如 法式、猫眼、波点、手绘、卡通、贴钻、渐变、晕染、腮红、魔镜粉",
+            description: "点名的做法或颜色，比如 猫眼、法式、手绘、贴钻、裸色、紫色",
           },
-          length: { type: "string", enum: ["短", "中", "中长", "长"], description: "甲长" },
         },
-        required: ["color"],
       },
     },
   },
 ];
 
-function runTool(name, args) {
+async function runTool(name, args) {
   if (name === "search_styles") {
     const prefs = {
       skin: args.skin,
@@ -248,29 +248,21 @@ function runTool(name, args) {
   }
 
   if (name === "check_slots") {
-    if (args.date) return checkSlots(args.date);
-    return { upcoming: upcoming(7), today: todayStr() };
+    if (args.date) return await checkSlots(args.date);
+    return { upcoming: await upcoming(7), today: todayStr() };
   }
 
   if (name === "book_slot") {
-    return bookSlot(args);
+    return await bookSlot(args);
   }
 
   if (name === "manage_order") {
-    return updateOrder(args);
+    return await updateOrder(args);
   }
 
   if (name === "list_orders") {
-    return { orders: listOrders(args), total: listOrders(args).length };
-  }
-
-  if (name === "generate_looks") {
-    const taskId = startLooks({ color: args.color, styles: args.styles, length: args.length }, 2);
-    return {
-      task_id: taskId,
-      note: "已经在画了，大约 1 分钟出图，稍后会自动发给客人。现在先跟客人说一句正在画。",
-      looksTask: taskId,
-    };
+    const orders = await listOrders(args);
+    return { orders, total: orders.length };
   }
 
   return { error: `未知工具 ${name}` };
@@ -328,29 +320,21 @@ export async function chat(history, image) {
   if (wantsRecommend) {
     messages.push({
       role: "system",
-      content: `客人说"${userText}"，想要推荐，但她还没给任何参考。
-不要推荐具体款式，也不要翻现有的款。
-像专业美甲师那样先聊两句，把这几件事一次问清（合并成一段自然的话，别列清单）：
-① 平时穿搭偏黑白灰 / 暖色 / 冷色？
-② 这次想要日常低调，还是想有点存在感（约会/拍照/见人）？
-③ 现在甲长什么样（短/中/长）？
-等她回答后，再用 generate_looks 给她画 2 张效果图。`,
+      content: `客人说"${userText}"，想要推荐。
+直接调用 search_styles 挑 3 款给她看（可以什么都不填），然后用一句话介绍每款，
+最后问一个真正影响选择的问题（比如"偏黄还是偏白？我做过的款里可以再挑"）。`,
     });
   }
 
-  // 推荐流程里客人答了偏好 → 必须画图
+  // 推荐流程里客人答了偏好 → 再搜一轮更准的
   const inRecommendFlow = history.some(
-    (h) =>
-      h.role === "assistant" &&
-      /黑白灰|暖色系|冷色系|日常低调|存在感|甲长大概|帮你画|画\s*2\s*款|画两|画2张/.test(h.content || "")
+    (h) => h.role === "assistant" && /肤色|甲长|场合|预算|做什么款|哪款/.test(h.content || "")
   );
   if (inRecommendFlow && !wantsRecommend && !vision && !alreadyCarded) {
     messages.push({
       role: "system",
-      content: `客人已经在推荐流程里回答了偏好："${userText}"。
-现在必须调用 generate_looks 给她画 2 张效果图，把颜色（color）、做法（styles）、甲长（length）填进参数。
-不许只描述"我给你画了两款"然后不调用工具——不调用客人就什么都看不到。
-也不要拿现成的款糊弄。`,
+      content: `客人补充了偏好："${userText}"。调用 search_styles 把她的条件填进去，重新挑 3 款。
+不要只回文字，一定要拿到卡片。`,
     });
   }
 
@@ -372,7 +356,6 @@ export async function chat(history, image) {
   }
 
   let cards = preCards;
-  let looksTask = null;
   const toolLog = [];
 
   // 代码兜底：客人发来的参考图如果没识别出蹭粉，追问一句「有蹭粉吗」——
@@ -400,7 +383,7 @@ export async function chat(history, image) {
 
     const toolCalls = msg.tool_calls || [];
     if (!toolCalls.length) {
-      return finalize({ reply: msg.content || "", cards, toolLog, vision, looks: looksTask });
+      return finalize({ reply: msg.content || "", cards, toolLog, vision });
     }
 
     messages.push({ role: "assistant", content: msg.content || "", tool_calls: toolCalls });
@@ -413,12 +396,11 @@ export async function chat(history, image) {
       }
       let result;
       try {
-        result = runTool(tc.function.name, args);
+        result = await runTool(tc.function.name, args);
       } catch (e) {
         result = { error: String(e.message || e) };
       }
       if (result?.cards) cards = result.cards;
-      if (result?.looksTask) looksTask = result.looksTask;
       toolLog.push({ name: tc.function.name, args, ok: !result?.error });
       messages.push({
         role: "tool",

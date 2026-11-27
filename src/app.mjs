@@ -1,9 +1,8 @@
-﻿// HTTP 路由处理：本地由 src/server.mjs 调用，云端由 api/index.js 调用。
+// HTTP 路由处理：本地由 src/server.mjs 调用，云端由 api/index.js 调用。
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chat } from "./llm.mjs";
-import { getLooks, retryLooks } from "./imagegen.mjs";
 import { readSchedule, saveDay, saveWeekly, cancelOrder, createOrder, upcomingDays } from "./schedule-admin.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -56,7 +55,8 @@ export async function handle(req, res) {
   // ---- 档期管理接口 ----
   if (req.method === "GET" && urlPath === "/api/schedule") {
     try {
-      json(res, { ...readSchedule(), days: upcomingDays(21) });
+      const cfg = await readSchedule();
+      json(res, { ...cfg, days: await upcomingDays(21) });
     } catch (e) {
       json(res, { error: String(e.message || e) }, 500);
     }
@@ -66,7 +66,7 @@ export async function handle(req, res) {
   if (req.method === "POST" && urlPath === "/api/schedule/day") {
     try {
       const body = await readBody(req);
-      json(res, saveDay(body));
+      json(res, await saveDay(body));
     } catch (e) {
       json(res, { error: String(e.message || e) }, 400);
     }
@@ -76,7 +76,7 @@ export async function handle(req, res) {
   if (req.method === "POST" && urlPath === "/api/schedule/weekly") {
     try {
       const body = await readBody(req);
-      json(res, saveWeekly(body));
+      json(res, await saveWeekly(body));
     } catch (e) {
       json(res, { error: String(e.message || e) }, 400);
     }
@@ -86,7 +86,7 @@ export async function handle(req, res) {
   if (req.method === "POST" && urlPath === "/api/orders/cancel") {
     try {
       const body = await readBody(req);
-      json(res, cancelOrder(body.id));
+      json(res, await cancelOrder(body.id));
     } catch (e) {
       json(res, { error: String(e.message || e) }, 400);
     }
@@ -96,24 +96,17 @@ export async function handle(req, res) {
   if (req.method === "POST" && urlPath === "/api/orders/create") {
     try {
       const body = await readBody(req);
-      json(res, createOrder(body));
+      json(res, await createOrder(body));
     } catch (e) {
       json(res, { error: String(e.message || e) }, 400);
     }
     return;
   }
 
-  // ---- 效果图任务查询 ----
+  // ---- 效果图任务查询（已停用：云端不跑生图）----
   const looksMatch = urlPath.match(/^\/api\/looks\/([A-Za-z0-9]+)$/);
   if (req.method === "GET" && looksMatch) {
-    const id = looksMatch[1];
-    let task = getLooks(id);
-    if (!task) {
-      const newId = retryLooks(id);
-      task = newId ? getLooks(newId) : { status: "missing" };
-    }
-    res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-    res.end(JSON.stringify(task));
+    json(res, { status: "disabled", note: "生图功能已关闭" });
     return;
   }
 

@@ -270,7 +270,7 @@
         <span class="ico">✨</span>
         <span>
           <span class="t">帮我推荐</span>
-          <span class="d">说说手和预算，我画两张效果图给你看</span>
+          <span class="d">说说手和预算，我挑几款合适的给你看</span>
         </span>
         <span class="arrow">›</span>
       </button>
@@ -490,42 +490,6 @@ function delTyping() {
   $("typing")?.remove();
 }
 
-async function pollLooks(taskId) {
-  addMsg("bot", "🎨 正在给你画效果图，大概 1 分钟，画好自动发你…");
-  const deadline = Date.now() + 180000;
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 3000));
-    let t;
-    try {
-      t = await fetch("/api/looks/" + taskId).then((r) => r.json());
-    } catch {
-      continue;
-    }
-    if (t.status === "done") {
-      const imgs = t.images
-        .map(
-          (im) =>
-            `<div style="margin:8px 0"><img src="${im.url}" loading="lazy" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block"></div>`
-        )
-        .join("");
-      addHtml(
-        "bot",
-        `<div class="pt-title">给你画了 ${t.images.length} 张效果图</div>${imgs}<div class="pt-note">这些是 AI 画的效果图，参考风格用；实际做出来什么样，以本人确认为准。</div>`
-      );
-      history.push({ role: "assistant", content: "[已给客人发了 AI 生成的效果图]" });
-      return;
-    }
-    if (t.status === "failed") {
-      addMsg("bot", "这张没画出来（生图服务偶尔会抽）。你再点一次「✨ 帮我推荐」，我重新画。");
-      return;
-    }
-    if (t.status === "missing") {
-      addMsg("bot", "图弄丢了，再点一次「✨ 帮我推荐」我重新画一张。");
-      return;
-    }
-  }
-  addMsg("bot", "图还在画，稍等一会儿我再发你。");
-}
 
 async function send(text) {
   if (busy || (!text.trim() && !pendingImage)) return;
@@ -561,7 +525,6 @@ async function send(text) {
         : "";
       history[history.length - 1].content += cardNote;
       addMsg("bot", data.reply, data.cards);
-      if (data.looks) pollLooks(data.looks);
     }
   } catch (e) {
     delTyping();
