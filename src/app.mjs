@@ -110,8 +110,24 @@ export async function handle(req, res) {
     return;
   }
 
-  let rel = urlPath === "/" ? "/web/index.html" : urlPath;
+  // 路径映射：根、/chat.html 都指向 web/ 下的页面；其余照旧
+  const ALIAS = {
+    "/": "/web/index.html",
+    "/chat.html": "/web/chat.html",
+    "/schedule.html": "/web/schedule.html",
+    "/recommend.html": "/web/recommend.html",
+    "/gallery.html": "/web/gallery.html",
+  };
+  let rel = ALIAS[urlPath] || urlPath;
   let file = path.resolve(ROOT, "." + rel);
+
+  // 再退一步：public/ 里如果有，就用 public/ 的
+  if (!fs.existsSync(file)) {
+    const pubFile = path.resolve(ROOT, "./public" + rel);
+    if (pubFile.startsWith(path.join(ROOT, "public")) && fs.existsSync(pubFile)) {
+      file = pubFile;
+    }
+  }
 
   if (!file.startsWith(ROOT)) {
     res.writeHead(403).end("Forbidden");
