@@ -34,7 +34,12 @@ const MIME = {
 };
 
 export async function handle(req, res) {
-  const urlPath = decodeURIComponent((req.url ?? "/").split("?")[0]);
+  const parsed = new URL(req.url ?? "/", "http://localhost");
+  // Vercel 的 rewrite 会把 URL 换成目标路径，原路径我们放在 __path 里带过来
+  const rewrote = parsed.searchParams.get("__path");
+  const urlPath = rewrote
+    ? "/api/" + rewrote
+    : decodeURIComponent(parsed.pathname);
 
   // ---- 对话接口 ----
   if (req.method === "POST" && urlPath === "/api/chat") {
