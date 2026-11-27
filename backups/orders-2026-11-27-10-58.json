@@ -1,0 +1,18 @@
+[
+  {
+    "id": "O001",
+    "date": "2026-11-19",
+    "start": "18:00",
+    "end": "20:30",
+    "name": "别睡了",
+    "contact": "",
+    "style": "纯色蓝绿",
+    "price": null,
+    "shape": "",
+    "hours": 2.5,
+    "note": "",
+    "status": "confirmed",
+    "source": "manual",
+    "createdAt": "2026-11-16T10:41:40.718Z"
+  }
+]
