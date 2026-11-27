@@ -36,20 +36,29 @@ if (!Array.isArray(orders) || orders.length === 0) {
   process.exit(0);
 }
 
+// 仓库是 Public：只留昵称和预约信息，去掉联系方式和备注
+// 想保留完整信息就加 --full（那样仓库必须是 Private）
+const keepFull = process.argv.includes("--full");
+const safe = orders.map((o) => {
+  const { contact, note, ...rest } = o;
+  return keepFull ? o : { ...rest, contact: "", note: "" };
+});
+
 fs.mkdirSync(OUT_DIR, { recursive: true });
 const now = new Date(Date.now() + 8 * 3600e3);
 const stamp = now.toISOString().replace(/[:T]/g, "-").slice(0, 16);
 const file = path.join(OUT_DIR, `orders-${stamp}.json`);
-fs.writeFileSync(file, JSON.stringify(orders, null, 2), "utf8");
+fs.writeFileSync(file, JSON.stringify(safe, null, 2), "utf8");
 
-const active = orders.filter((o) => ["pending", "confirmed", "rescheduled"].includes(o.status));
-console.log(`备份 ${orders.length} 条订单（其中未完成 ${active.length} 条）`);
+const active = safe.filter((o) => ["pending", "confirmed", "rescheduled"].includes(o.status));
+console.log(`备份 ${safe.length} 条订单（其中未完成 ${active.length} 条）`);
+if (!keepFull) console.log("已去掉联系方式与备注（仓库为 Public）");
 console.log(`文件：backups/${path.basename(file)}`);
 
 // 只提交这个备份文件，别把工作区其他改动带进去
 try {
   sh(`git add "backups/${path.basename(file)}"`);
-  const msg = `备份订单 ${stamp.slice(0, 10)}（${orders.length} 条）`;
+  const msg = `备份订单 ${stamp.slice(0, 10)}（${safe.length} 条）`;
   sh(`git -c core.quotepath=false commit -m "${msg}" -- "backups/${path.basename(file)}"`);
   console.log("已提交，正在推送…");
   let pushed = false;
