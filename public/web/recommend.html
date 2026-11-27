@@ -1,0 +1,500 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>选款推荐 · 美甲</title>
+<style>
+  :root {
+    --bg: #f7f4fc; --card: #fff; --ink: #2c2733; --muted: #857d94;
+    --line: #e7e1f2; --purple: #8b5cf6; --purple-deep: #6d3fd4; --purple-soft: #ede4fb;
+    --warn: #8a6a12; --warn-bg: #fbf3e2; --danger: #c0455e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- 顶部 ---------- */
+  .hero {
+    background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 45%, #c4b5fd 100%);
+    padding: 30px 20px 34px; color: #fff; position: relative; overflow: hidden;
+  }
+  .hero::after {
+    content: ""; position: absolute; right: -60px; top: -80px;
+    width: 260px; height: 260px; border-radius: 50%;
+    background: rgba(255,255,255,.14);
+  }
+  .hero::before {
+    content: ""; position: absolute; right: 90px; bottom: -110px;
+    width: 180px; height: 180px; border-radius: 50%;
+    background: rgba(255,255,255,.1);
+  }
+  .hero-inner { max-width: 1160px; margin: 0 auto; position: relative; z-index: 1; }
+  .hero h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: .5px; }
+  .hero p { margin: 0; font-size: 13px; opacity: .9; max-width: 560px; line-height: 1.7; }
+  nav { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+  nav a {
+    color: #fff; text-decoration: none; font-size: 12.5px;
+    padding: 5px 13px; border-radius: 999px; background: rgba(255,255,255,.16);
+    backdrop-filter: blur(4px); transition: .15s;
+  }
+  nav a:hover { background: rgba(255,255,255,.28); }
+  nav a.on { background: #fff; color: var(--purple-deep); font-weight: 600; }
+
+  /* ---------- 布局 ---------- */
+  .wrap {
+    max-width: 1160px; margin: -20px auto 0; padding: 0 20px 60px;
+    display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start;
+    position: relative; z-index: 2;
+  }
+  @media (max-width: 940px) { .wrap { grid-template-columns: 1fr; } }
+
+  /* ---------- 左侧询问面板 ---------- */
+  .panel {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 4px 0 0; position: sticky; top: 16px;
+    box-shadow: 0 4px 20px rgba(109, 63, 212, .06);
+  }
+  @media (max-width: 940px) { .panel { position: static; } }
+
+  .panel-head {
+    padding: 16px 20px 12px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-head h2 { font-size: 15px; margin: 0; }
+  .panel-head .hint { font-size: 11.5px; color: var(--muted); }
+
+  .step { padding: 14px 20px; border-bottom: 1px solid #f3effa; }
+  .step:last-of-type { border-bottom: none; }
+  .step-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .step-no {
+    width: 20px; height: 20px; border-radius: 7px; background: var(--purple-soft);
+    color: var(--purple-deep); font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step-title { font-size: 13px; font-weight: 600; color: #4a4055; }
+  .step-opt { font-size: 11px; color: #b5adc2; margin-left: auto; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    padding: 6px 13px; border-radius: 10px; border: 1.5px solid var(--line);
+    background: #fff; cursor: pointer; font-size: 12.5px; color: #6b6478;
+    font-family: inherit; transition: .15s; line-height: 1.4;
+  }
+  .chip:hover { border-color: #cbb8f5; color: var(--purple-deep); transform: translateY(-1px); }
+  .chip.on {
+    background: var(--purple); border-color: var(--purple); color: #fff;
+    box-shadow: 0 3px 10px rgba(139, 92, 246, .32);
+  }
+
+  .range-row { display: flex; align-items: center; gap: 12px; }
+  .range-row input {
+    flex: 1; accent-color: var(--purple); height: 4px; cursor: pointer;
+  }
+  .range-val {
+    min-width: 62px; text-align: center; font-variant-numeric: tabular-nums;
+    background: var(--purple-soft); color: var(--purple-deep);
+    font-weight: 700; font-size: 14px; padding: 4px 8px; border-radius: 9px;
+  }
+  .range-val small { font-size: 10px; font-weight: 500; opacity: .7; }
+
+  /* 已选条件 */
+  .selected {
+    margin: 0 16px 16px; padding: 11px 13px; background: #faf8ff;
+    border: 1px dashed #d8c9f5; border-radius: 12px; font-size: 12px; color: #6b6478;
+    line-height: 1.6;
+  }
+  .selected b { color: var(--purple-deep); font-weight: 600; }
+  .selected .none { color: #b5adc2; }
+
+  /* ---------- 右侧结果 ---------- */
+  main { min-width: 0; }
+  .results-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin: 26px 0 12px; gap: 10px; flex-wrap: wrap;
+  }
+  .results-head h2 { font-size: 15px; margin: 0; color: #4a4055; }
+  .summary { font-size: 12.5px; color: var(--muted); }
+
+  .cards { display: flex; flex-direction: column; gap: 14px; }
+  .style-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    display: grid; grid-template-columns: 168px 1fr; overflow: hidden;
+    transition: .2s; position: relative;
+  }
+  .style-card:hover { box-shadow: 0 8px 26px rgba(109, 63, 212, .1); transform: translateY(-2px); }
+  @media (max-width: 620px) { .style-card { grid-template-columns: 110px 1fr; } }
+
+  .sc-img { background: #f0ecf7; position: relative; min-height: 168px; }
+  .sc-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .rank {
+    position: absolute; left: 10px; top: 10px; width: 24px; height: 24px;
+    border-radius: 8px; background: rgba(255,255,255,.94);
+    color: var(--purple-deep); font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  }
+  .rank.top { background: var(--purple); color: #fff; }
+
+  .sc-body { padding: 14px 18px 16px; display: flex; flex-direction: column; }
+  .sc-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+  .sc-name { font-size: 16px; font-weight: 600; line-height: 1.4; }
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .tag {
+    font-size: 11px; padding: 2px 9px; border-radius: 7px;
+    background: var(--purple-soft); color: #6b46a8;
+  }
+  .tag.dim { background: #f3effa; color: var(--muted); }
+
+  .sc-price { text-align: right; white-space: nowrap; flex-shrink: 0; }
+  .sc-price .num {
+    font-size: 22px; font-weight: 700; color: var(--purple-deep);
+    font-variant-numeric: tabular-nums; letter-spacing: -.5px;
+  }
+  .sc-price .dur { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .reason {
+    margin: 10px 0 0; font-size: 12.5px; color: #5c5568;
+    padding-left: 10px; border-left: 2px solid var(--purple-soft);
+  }
+  .extra { margin-top: 7px; font-size: 11.5px; color: var(--warn); }
+
+  .flagrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .warnline {
+    font-size: 11px; color: var(--warn); background: var(--warn-bg);
+    padding: 2px 9px; border-radius: 7px;
+  }
+
+  .card-foot {
+    margin-top: auto; padding-top: 10px; display: flex; align-items: center;
+    justify-content: space-between; gap: 10px;
+  }
+  .more {
+    background: none; border: 0; color: var(--purple); font: inherit;
+    font-size: 12px; cursor: pointer; padding: 0;
+  }
+  .more:hover { color: var(--purple-deep); }
+
+  .detail { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 9px; display: none; }
+  .detail.on { display: block; }
+  .detail .row {
+    display: flex; justify-content: space-between; font-size: 12.5px;
+    padding: 3px 0; color: var(--muted);
+  }
+  .detail .row b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .detail .row.total { border-top: 1px solid var(--line); margin-top: 5px; padding-top: 7px; }
+  .detail .row.total b { color: var(--purple-deep); font-weight: 700; }
+  .detail .note { font-size: 11px; color: #b5adc2; margin-top: 6px; }
+
+  .empty { color: var(--muted); text-align: center; padding: 60px 20px; font-size: 13px; }
+
+  /* ---------- 延长对比 ---------- */
+  .compare {
+    margin-top: 26px; background: #fff; border: 1px solid var(--line);
+    border-radius: 18px; padding: 18px 20px;
+  }
+  .compare h3 {
+    font-size: 13.5px; color: #4a4055; margin: 0 0 4px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .compare h3::before {
+    content: ""; width: 3px; height: 14px; background: var(--purple);
+    border-radius: 2px;
+  }
+  .compare .sub2 { font-size: 11.5px; color: var(--muted); margin: 0 0 14px 10px; }
+  .compare-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 780px) { .compare-grid { grid-template-columns: repeat(2, 1fr); } }
+  .opt-card {
+    border: 1px solid var(--line); border-radius: 13px; padding: 13px 13px 14px;
+    background: #fdfcff; transition: .15s;
+  }
+  .opt-card:hover { border-color: #cbb8f5; }
+  .opt-card .on-tag {
+    font-size: 10px; color: var(--purple-deep); background: var(--purple-soft);
+    padding: 1px 7px; border-radius: 6px; display: inline-block; margin-bottom: 6px;
+  }
+  .opt-card .oname { font-size: 13px; font-weight: 600; line-height: 1.4; }
+  .opt-card .oprice {
+    font-size: 19px; font-weight: 700; color: var(--purple-deep); margin: 4px 0 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .opt-card .oline { font-size: 11.5px; color: #6b6478; line-height: 1.55; }
+  .opt-card .ocons { font-size: 11px; color: var(--warn); margin-top: 5px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <h1>选款推荐</h1>
+    <p>六个小问题，从 20 款里挑最配你的三款。价格按「本甲」算，想延长在下方自己挑。</p>
+    <nav>
+      <a href="/web/chat.html">AI 对话</a>
+      <a href="/web/recommend.html" class="on">选款推荐</a>
+      <a href="/web/gallery.html">款式图库</a>
+      <a href="/web/">报价器</a>
+    <a href="/web/schedule.html">档期管理</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside class="panel">
+    <div class="panel-head">
+      <h2>告诉我你的偏好</h2>
+      <span class="hint">随时可以改</span>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-no">1</span>
+        <span class="step-title">你的手 / 肤色</span>
+      </div>
+      <div class="chips" id="skin">
+        <button class="chip" data-v="黄黑">偏黄黑</button>
+        <button class="chip" data-v="冷白">偏白</button>
+        <button class="chip on" data-v="">不确定</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-no">2</span>
+        <span class="step-title">想要多长</span>
+      </div>
+      <div class="chips" id="length">
+        <button class="chip on" data-v="">都行</button>
+        <button class="chip" data-v="短">短</button>
+        <button class="chip" data-v="中">中</button>
+        <button class="chip" data-v="中长">中长</button>
+        <button class="chip" data-v="长">长</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-no">3</span>
+        <span class="step-title">主要场合</span>
+      </div>
+      <div class="chips" id="occasion">
+        <button class="chip on" data-v="">不限</button>
+        <button class="chip" data-v="日常">日常</button>
+        <button class="chip" data-v="通勤">通勤</button>
+        <button class="chip" data-v="约会">约会</button>
+        <button class="chip" data-v="婚礼">婚礼</button>
+        <button class="chip" data-v="拍照">拍照</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-no">4</span>
+        <span class="step-title">喜欢的做法</span>
+        <span class="step-opt">可多选</span>
+      </div>
+      <div class="chips" id="keywords">
+        <button class="chip" data-v="猫眼">猫眼</button>
+        <button class="chip" data-v="法式">法式</button>
+        <button class="chip" data-v="波点">波点</button>
+        <button class="chip" data-v="手绘">手绘</button>
+        <button class="chip" data-v="卡通">卡通</button>
+        <button class="chip" data-v="腮红">腮红</button>
+        <button class="chip" data-v="渐变">渐变</button>
+        <button class="chip" data-v="魔镜粉">魔镜粉</button>
+        <button class="chip" data-v="贴钻">贴钻</button>
+        <button class="chip" data-v="纯色">纯色</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-no">5</span>
+        <span class="step-title">能接受延长吗</span>
+      </div>
+      <div class="chips" id="extend">
+        <button class="chip on" data-v="any">都行</button>
+        <button class="chip" data-v="no">不想延长</button>
+        <button class="chip" data-v="yes">可以延长</button>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head">
+        <span class="step-no">6</span>
+        <span class="step-title">预算上限</span>
+      </div>
+      <div class="range-row">
+        <input type="range" id="budget" min="30" max="300" step="10" value="80">
+        <b class="range-val" id="budgetVal">80<small> 元</small></b>
+      </div>
+    </div>
+
+    <div class="selected" id="selected"></div>
+  </aside>
+
+  <main>
+    <div class="results-head">
+      <h2>给你挑的</h2>
+      <div class="summary" id="summary"></div>
+    </div>
+    <div class="cards" id="cards"></div>
+    <div class="empty" id="empty" style="display:none">没有匹配的款式，放宽一下条件试试</div>
+    <div class="compare" id="compare"></div>
+  </main>
+</div>
+
+<script type="module">
+import { recommend } from "/src/recommend-core.mjs";
+
+const $ = (id) => document.getElementById(id);
+let PRICING = null, STYLES = [];
+const sel = { skin: "", length: "", occasion: "", keywords: [], extend: "any", budget: 80 };
+
+const SKIN_CN = { 黄黑: "偏黄黑", 冷白: "偏白" };
+const EXTEND_CN = { any: "", no: "不延长", yes: "可延长" };
+
+function bindSingle(id, key) {
+  $(id).onclick = (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    [...$(id).children].forEach((c) => c.classList.toggle("on", c === b));
+    sel[key] = b.dataset.v;
+    render();
+  };
+}
+
+function renderSelected() {
+  const parts = [];
+  if (sel.skin) parts.push(`肤色 <b>${SKIN_CN[sel.skin] || sel.skin}</b>`);
+  if (sel.length) parts.push(`长度 <b>${sel.length}</b>`);
+  if (sel.occasion) parts.push(`场合 <b>${sel.occasion}</b>`);
+  if (sel.keywords.length) parts.push(`做法 <b>${sel.keywords.join("、")}</b>`);
+  if (sel.extend !== "any") parts.push(`延长 <b>${EXTEND_CN[sel.extend]}</b>`);
+  parts.push(`预算 <b>${sel.budget} 元内</b>`);
+  $("selected").innerHTML = parts.length
+    ? "已选：" + parts.join("　·　")
+    : '<span class="none">还没选，上面随便点几个就行</span>';
+}
+
+function render() {
+  renderSelected();
+  const prefs = {
+    skin: sel.skin || undefined,
+    length: sel.length || undefined,
+    occasion: sel.occasion || undefined,
+    keywords: sel.keywords.length ? sel.keywords : undefined,
+    wantExtend: sel.extend === "any" ? undefined : sel.extend === "yes",
+    budget: sel.budget,
+  };
+  const res = recommend(PRICING, STYLES, prefs, 3);
+  $("empty").style.display = res.length ? "none" : "block";
+  $("summary").textContent = res.length
+    ? `从 ${STYLES.length} 款里挑出 ${res.length} 款`
+    : "";
+
+  $("cards").innerHTML = res.map((r, i) => `
+    <article class="style-card">
+      <div class="sc-img">
+        ${r.img ? `<img src="${r.img}" alt="${r.name}" loading="lazy">` : ""}
+        <span class="rank${i === 0 ? " top" : ""}">${i + 1}</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-top">
+          <div>
+            <div class="sc-name">${r.name}</div>
+            <div class="tags">
+              <span class="tag">${r.tags.color || "—"}</span>
+              ${(r.tags.style || []).slice(0, 3).map((s) => `<span class="tag">${s}</span>`).join("")}
+              <span class="tag dim">${r.tags.length || "—"}</span>
+              <span class="tag dim">${r.tags.skin_effect || "—"}</span>
+            </div>
+          </div>
+          <div class="sc-price">
+            <div class="num">${r.priceText}</div>
+            <div class="dur">${r.durationText}</div>
+          </div>
+        </div>
+        <div class="reason">${r.reason}</div>
+        ${r.extraText ? `<div class="extra">另计：${r.extraText}</div>` : ""}
+        ${r.overBudget || r.priceConfirm
+          ? `<div class="flagrow">
+               ${r.overBudget ? '<span class="warnline">比预算高一些</span>' : ""}
+               ${r.priceConfirm ? '<span class="warnline">这款价格需人工确认</span>' : ""}
+             </div>`
+          : ""}
+        <div class="card-foot">
+          <button class="more" data-i="${i}">看报价明细 ▾</button>
+        </div>
+        <div class="detail" id="detail-${i}">
+          ${r.lines.map((l) => `<div class="row"><span>${l.label}</span><b>${l.amount}</b></div>`).join("")}
+          <div class="row total"><span>合计</span><b>${r.priceText}</b></div>
+          <div class="note">价格按本甲算，不含延长。具体以本人确认为准。</div>
+        </div>
+      </div>
+    </article>`).join("");
+
+  $("cards").querySelectorAll(".more").forEach((btn) => {
+    btn.onclick = () => {
+      const d = $("detail-" + btn.dataset.i);
+      d.classList.toggle("on");
+      btn.textContent = d.classList.contains("on") ? "收起明细 ▴" : "看报价明细 ▾";
+    };
+  });
+}
+
+function renderCompare() {
+  const cards = PRICING.base
+    .map(
+      (b, i) => `
+      <div class="opt-card">
+        ${i === 0 ? '<span class="on-tag">默认按这个算</span>' : ""}
+        <div class="oname">${b.name}</div>
+        <div class="oprice">¥${b.price}</div>
+        <div class="oline">${b.suitable || ""}</div>
+        ${b.cons ? `<div class="ocons">注意：${b.cons}</div>` : ""}
+      </div>`
+    )
+    .join("");
+  $("compare").innerHTML = `
+    <h3>四种做法怎么选</h3>
+    <p class="sub2">上面的价格都按「本甲」算，你想换哪档跟我说，我按那个重算。</p>
+    <div class="compare-grid">${cards}</div>`;
+}
+
+(function init() {
+  bindSingle("skin", "skin");
+  bindSingle("length", "length");
+  bindSingle("occasion", "occasion");
+  bindSingle("extend", "extend");
+
+  $("keywords").onclick = (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    b.classList.toggle("on");
+    sel.keywords = [...$("keywords").querySelectorAll(".chip.on")].map((c) => c.dataset.v);
+    render();
+  };
+
+  $("budget").oninput = (e) => {
+    sel.budget = Number(e.target.value);
+    $("budgetVal").innerHTML = sel.budget + "<small> 元</small>";
+    render();
+  };
+
+  Promise.all([
+    fetch("/knowledge/pricing.json").then((r) => r.json()),
+    fetch("/knowledge/03_styles.jsonl").then((r) => r.text()),
+  ]).then(([pricing, text]) => {
+    PRICING = pricing;
+    STYLES = text.split("\n").filter((l) => l.trim()).map((l) => JSON.parse(l));
+    renderCompare();
+    render();
+  }).catch((e) => {
+    $("cards").innerHTML = `<div class="empty">数据没加载出来：${e.message}（用 node src/server.mjs 启动）</div>`;
+  });
+})();
+</script>
+</body>
+</html>

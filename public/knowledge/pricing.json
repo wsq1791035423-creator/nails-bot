@@ -1,0 +1,186 @@
+{
+  "meta": {
+    "updated": "2026-11-09",
+    "currency": "CNY",
+    "type": "个人美甲师 · 上门服务",
+    "source": "店主口述价目表（v2，已按店主确认修订）",
+    "note": "本文件是价格的唯一来源。bot 只能引用，不能自行计算或编造。"
+  },
+  "base": [
+    {
+      "id": "B1",
+      "name": "本甲（建构+纯色/猫眼）",
+      "price": 39,
+      "includes_color": true,
+      "duration_min": 80,
+      "scene": "自有甲床，不做延长",
+      "suitable": "甲床条件正常、不追求长度",
+      "pros": "最便宜、最自然、最省时",
+      "cons": "无法改善甲床短小",
+      "desc": "精细前置处理后做建构加固，再上纯色或猫眼"
+    },
+    {
+      "id": "B2",
+      "name": "甲膜短甲延长（+纯色/猫眼）",
+      "price": 65,
+      "includes_color": true,
+      "duration_min": 100,
+      "scene": "甲床条件优秀，想加一点自然长度",
+      "suitable": "甲床长、甲面平整、甲型本身好看",
+      "pros": "性价比高，自然",
+      "cons": "甲床条件差的做出来效果一般",
+      "desc": "甲膜延长，适合短甲拉长比例"
+    },
+    {
+      "id": "B3",
+      "name": "高位半贴+建构（+纯色/猫眼）",
+      "price": 69,
+      "includes_color": true,
+      "duration_min": 100,
+      "scene": "需要延长，但预算有限",
+      "suitable": "甲床条件一般、需要延长",
+      "pros": "比浅贴便宜，延长效果好",
+      "cons": "甲型可能显胖，不前收",
+      "desc": "高位半贴延长 + 建构加固"
+    },
+    {
+      "id": "B4",
+      "name": "浅贴延长+建构+塑形（+纯色/猫眼）",
+      "price": 89,
+      "includes_color": true,
+      "duration_min": 120,
+      "scene": "追求精致甲型、想显手细",
+      "suitable": "想要塑形收窄、显瘦",
+      "pros": "可塑形，甲型显瘦精致",
+      "cons": "价格最高、耗时最长",
+      "desc": "浅贴延长，含塑形，甲型更精致"
+    }
+  ],
+  "styles": [
+    {
+      "id": "S1",
+      "name": "钻饰（小钻/单钻）",
+      "per_finger": 0,
+      "full_hand": 0,
+      "extra_min": 5,
+      "note": "免费"
+    },
+    {
+      "id": "S2F",
+      "name": "法式",
+      "group": "art",
+      "per_finger": 2,
+      "full_hand": 8,
+      "extra_min": 15
+    },
+    {
+      "id": "S2D",
+      "name": "波点",
+      "group": "art",
+      "per_finger": 2,
+      "full_hand": 8,
+      "extra_min": 15
+    },
+    {
+      "id": "S2B",
+      "name": "腮红",
+      "group": "art",
+      "per_finger": 2,
+      "full_hand": 8,
+      "extra_min": 15
+    },
+    {
+      "id": "S2G",
+      "name": "渐变",
+      "group": "art",
+      "per_finger": 2,
+      "full_hand": 8,
+      "extra_min": 15
+    },
+    {
+      "id": "S2Y",
+      "name": "晕染",
+      "group": "art",
+      "per_finger": 2,
+      "full_hand": 8,
+      "extra_min": 15
+    },
+    {
+      "id": "S3",
+      "name": "极简手绘（细线条/简笔画）",
+      "per_finger": 3,
+      "full_hand": 10,
+      "extra_min": 20
+    },
+    {
+      "id": "S4",
+      "name": "稍复杂手绘",
+      "per_finger": 5,
+      "full_hand": null,
+      "extra_min": 25,
+      "no_full_hand": true,
+      "note": "只按单指计价，无整手打包价"
+    },
+    {
+      "id": "S5",
+      "name": "卡通图案",
+      "per_finger_min": 5,
+      "per_finger_max": 10,
+      "extra_min": 30,
+      "needs_confirm": true,
+      "confirm_note": "卡通按 5–10 元/指，具体价格需人工确认"
+    },
+    {
+      "id": "S6",
+      "name": "款式钻/堆钻/浮雕",
+      "per_finger_min": 5,
+      "per_finger_max": 10,
+      "extra_min": 20,
+      "needs_confirm": true,
+      "confirm_note": "区间价，按具体款式复杂度定，bot 只能报区间"
+    },
+    {
+      "id": "S8",
+      "name": "复杂晕染（醋酸）",
+      "per_finger": 10,
+      "tiers": [{ "fingers": 4, "price": 36 }],
+      "max_fingers": 4,
+      "only_base": ["B1", "B4"],
+      "extra_min": 25,
+      "note": "10 元一指；做满 4 指打包 36 元。最多四指。只能配本甲（B1）或浅贴延长（B4），甲膜和高位半贴撑不住。"
+    },
+    {
+      "id": "S7",
+      "name": "魔镜粉 / 海莉粉",
+      "per_finger": 2,
+      "full_hand": 10,
+      "extra_min": 10,
+      "note": "整手 10 元（10 指）；部分手指按 2 元/指。报价前先问清做几个手指，不主动建议做满。"
+    }
+  ],
+  "fees": [
+    { "id": "F1", "name": "断甲修补", "price": 5, "unit": "per_finger" },
+    { "id": "F2", "name": "甲片卸甲", "price": 10, "unit": "per_time" },
+    { "id": "F3", "name": "超长本甲卸甲", "price": 5, "unit": "per_time" },
+    { "id": "F4", "name": "单个手指延长", "price": 5, "unit": "per_finger" },
+    { "id": "F5", "name": "甲片二次利用", "price": 10, "unit": "per_time" }
+  ],
+  "rules": {
+    "prep_included": "卸本甲免费，不限款式；去死皮、湿处理均已含在基础项目价内",
+    "discount": {
+      "returning": 0.95,
+      "name": "老顾客",
+      "note": "回头客总价 95 折，按整单打折，保留两位小数不四舍五入。报价前先问清是不是第一次来。"
+    },
+    "late": {
+      "free_minutes": 10,
+      "per_minute_fee": 1,
+      "max_minutes": 30,
+      "over_max_action": "视为取消，且不再接单",
+      "note": "迟到 10 分钟以内不收费；超过 10 分钟到 30 分钟，按每分钟 1 元加收（即 10–30 元）；超过 30 分钟视为取消"
+    },
+    "on_site": true,
+    "duration_note": "做工时长约为自助美甲店的 1.5–2 倍，请预留时间",
+    "satisfaction": "不满意可当场卸甲"
+  }
+}

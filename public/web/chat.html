@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>美甲预约 · 和美甲师聊聊</title>
+<style>
+  :root {
+    --bg: #f7f4fc; --card: #fff; --ink: #2c2733; --muted: #857d94;
+    --line: #e7e1f2; --purple: #8b5cf6; --purple-deep: #6d3fd4;
+    --purple-soft: #ede4fb; --warn-bg: #fbf3e2;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---------- 顶栏 ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 20px; background: rgba(255,255,255,.86);
+    backdrop-filter: blur(12px); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 30;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .brand-mark {
+    width: 32px; height: 32px; border-radius: 11px; flex-shrink: 0;
+    background: linear-gradient(135deg, #8b5cf6, #c4b5fd);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    box-shadow: 0 3px 10px rgba(139, 92, 246, .3);
+  }
+  .brand-text { min-width: 0; }
+  .brand-text b { display: block; font-size: 14px; line-height: 1.3; }
+  .brand-text span { font-size: 11px; color: var(--muted); line-height: 1.2; display: block; }
+  .topnav { margin-left: auto; display: flex; gap: 5px; flex-wrap: wrap; }
+  .topnav a {
+    font-size: 12px; color: var(--muted); text-decoration: none;
+    padding: 5px 11px; border-radius: 999px; transition: .15s; white-space: nowrap;
+  }
+  .topnav a:hover { background: var(--purple-soft); color: var(--purple-deep); }
+  .topnav a.on { background: var(--purple-soft); color: var(--purple-deep); font-weight: 600; }
+  @media (max-width: 620px) {
+    .topnav a { padding: 4px 9px; font-size: 11.5px; }
+    .brand-text span { display: none; }
+  }
+
+  /* ---------- 欢迎页 ---------- */
+  .welcome {
+    flex: 1; overflow-y: auto; padding: 28px 20px 10px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .welcome.hide { display: none; }
+  .welcome-inner { width: 100%; max-width: 520px; }
+  .hello { text-align: center; margin-bottom: 26px; }
+  .hello-avatar {
+    width: 76px; height: 76px; border-radius: 26px; margin: 0 auto 16px;
+    background: linear-gradient(135deg, #8b5cf6, #c4b5fd);
+    display: flex; align-items: center; justify-content: center; font-size: 36px;
+    box-shadow: 0 10px 30px rgba(139, 92, 246, .32);
+    position: relative;
+  }
+  .hello-avatar::after {
+    content: ""; position: absolute; inset: -6px; border-radius: 32px;
+    border: 1px solid rgba(139, 92, 246, .22);
+  }
+  .hello h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: .3px; }
+  .hello p { margin: 0; color: var(--muted); font-size: 13px; }
+
+  .actions { display: flex; flex-direction: column; gap: 10px; }
+  .action {
+    display: flex; align-items: center; gap: 14px; text-align: left;
+    width: 100%; padding: 16px 18px; border-radius: 16px;
+    background: var(--card); border: 1px solid var(--line);
+    font: inherit; color: inherit; cursor: pointer; transition: .18s;
+    box-shadow: 0 1px 2px rgba(109, 63, 212, .04);
+  }
+  .action:hover {
+    border-color: #cbb8f5; transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(109, 63, 212, .12);
+  }
+  .action .ico {
+    width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+    background: var(--purple-soft); display: flex; align-items: center;
+    justify-content: center; font-size: 21px;
+  }
+  .action.primary { background: linear-gradient(135deg, #8b5cf6, #a78bfa); border-color: transparent; }
+  .action.primary .ico { background: rgba(255,255,255,.24); }
+  .action.primary .t { color: #fff; }
+  .action.primary .d { color: rgba(255,255,255,.82); }
+  .action.primary:hover { box-shadow: 0 10px 28px rgba(139, 92, 246, .38); }
+  .action .t { font-size: 14.5px; font-weight: 600; line-height: 1.4; }
+  .action .d { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 2px; }
+  .action .arrow { margin-left: auto; color: #c9c1d6; font-size: 18px; }
+  .action.primary .arrow { color: rgba(255,255,255,.7); }
+
+  .welcome-note {
+    text-align: center; color: #b5adc2; font-size: 11.5px;
+    margin-top: 22px; line-height: 1.8;
+  }
+
+  /* ---------- 对话区 ---------- */
+  .chat {
+    flex: 1; overflow-y: auto; padding: 18px 20px 8px;
+    max-width: 780px; margin: 0 auto; width: 100%;
+  }
+  .chat.empty { display: none; }
+
+  .msg { display: flex; margin-bottom: 16px; gap: 9px; align-items: flex-start; }
+  .msg.user { justify-content: flex-end; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, #8b5cf6, #c4b5fd);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; box-shadow: 0 2px 8px rgba(139, 92, 246, .24);
+  }
+  .bubble {
+    max-width: 74%; padding: 11px 15px; border-radius: 16px;
+    background: var(--card); border: 1px solid var(--line);
+    white-space: pre-wrap; word-break: break-word;
+    border-top-left-radius: 5px; box-shadow: 0 1px 3px rgba(109, 63, 212, .05);
+  }
+  .msg.user .bubble {
+    background: linear-gradient(135deg, #8b5cf6, #9d75f8); color: #fff;
+    border-color: transparent; border-top-left-radius: 16px; border-top-right-radius: 5px;
+    box-shadow: 0 3px 12px rgba(139, 92, 246, .28);
+  }
+  .bubble strong { font-weight: 600; }
+
+  .bubble table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0 8px; }
+  .bubble td, .bubble th { padding: 5px 6px; border-bottom: 1px dashed var(--line); text-align: left; vertical-align: top; }
+  .bubble th { color: var(--muted); font-size: 11.5px; font-weight: 500; }
+  .bubble .pt-title { font-weight: 600; margin: 11px 0 3px; font-size: 13px; color: var(--purple-deep); }
+  .bubble .pt-price { color: var(--purple-deep); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .bubble .pt-note { color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+  .cards { display: flex; flex-direction: column; gap: 8px; margin: 2px 0 16px 39px; max-width: 70%; }
+  .rcard {
+    display: grid; grid-template-columns: 70px 1fr; gap: 11px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 14px; overflow: hidden; align-items: stretch;
+    transition: .15s;
+  }
+  .rcard:hover { border-color: #cbb8f5; box-shadow: 0 4px 14px rgba(109, 63, 212, .1); }
+  .rcard img { width: 70px; height: 88px; object-fit: cover; display: block; background: #f0ecf7; }
+  .rcard .rb { padding: 9px 12px 9px; }
+  .rcard .rn { font-weight: 600; font-size: 13px; line-height: 1.4; }
+  .rcard .rp { color: var(--purple-deep); font-weight: 700; font-size: 14.5px; margin-top: 1px; }
+  .rcard .rr { color: var(--muted); font-size: 11px; margin-top: 3px; line-height: 1.4; }
+
+  .typing {
+    display: flex; align-items: center; gap: 9px; color: var(--muted);
+    font-size: 12.5px; margin-bottom: 14px;
+  }
+  .typing .dots { display: flex; gap: 3px; }
+  .typing .dots i {
+    width: 5px; height: 5px; border-radius: 50%; background: #c4b5fd;
+    animation: bounce 1.2s infinite;
+  }
+  .typing .dots i:nth-child(2) { animation-delay: .15s; }
+  .typing .dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity:.5 } 30% { transform: translateY(-4px); opacity:1 } }
+
+  /* ---------- 输入区 ---------- */
+  .composer {
+    padding: 10px 20px 16px; max-width: 780px; margin: 0 auto; width: 100%;
+    background: linear-gradient(to top, var(--bg) 60%, rgba(247,244,252,0));
+  }
+  .inputrow {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--card); border: 1.5px solid var(--line);
+    border-radius: 18px; padding: 5px 5px 5px 8px; transition: .15s;
+    box-shadow: 0 2px 10px rgba(109, 63, 212, .06);
+  }
+  .inputrow:focus-within { border-color: #b79bf2; box-shadow: 0 3px 16px rgba(139, 92, 246, .16); }
+  .inputrow input {
+    flex: 1; padding: 9px 8px; border: none; background: transparent;
+    font: inherit; outline: none; min-width: 0;
+  }
+  .inputrow input[type=file] {
+    position: absolute; width: 1px; height: 1px; opacity: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .imgbtn {
+    padding: 7px 9px; border-radius: 12px; border: none; background: transparent;
+    cursor: pointer; font-size: 18px; line-height: 1; display: flex; align-items: center;
+    transition: .15s; flex-shrink: 0;
+  }
+  .imgbtn:hover { background: var(--purple-soft); }
+  .sendbtn {
+    padding: 9px 20px; border: none; border-radius: 13px;
+    background: linear-gradient(135deg, #8b5cf6, #a78bfa); color: #fff;
+    font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer;
+    transition: .15s; flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(139, 92, 246, .26);
+  }
+  .sendbtn:hover { box-shadow: 0 5px 16px rgba(139, 92, 246, .38); }
+  .sendbtn:disabled { opacity: .5; cursor: default; box-shadow: none; }
+
+  .preview { display: none; margin-top: 9px; align-items: center; gap: 9px; }
+  .preview.on { display: flex; }
+  .preview img { height: 60px; border-radius: 10px; border: 1px solid var(--line); }
+  .preview .x {
+    border: 0; background: var(--purple-soft); color: var(--purple-deep);
+    width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 13px; line-height: 1;
+  }
+  .preview .hint { color: var(--muted); font-size: 12px; }
+
+  .tip { color: #b5adc2; font-size: 11px; margin-top: 8px; text-align: center; }
+
+  /* ---------- 诊断 ---------- */
+  .diag {
+    position: fixed; right: 14px; bottom: 14px; z-index: 60;
+    border: 1px solid var(--line); background: rgba(255,255,255,.9);
+    color: var(--muted); font: inherit; font-size: 11.5px;
+    padding: 5px 11px; border-radius: 999px; cursor: pointer;
+    backdrop-filter: blur(6px); opacity: .55; transition: .15s;
+  }
+  .diag:hover { opacity: 1; }
+  .diagbox {
+    display: none; max-width: 780px; margin: 0 auto 8px; width: calc(100% - 40px);
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 11px 15px; font-size: 11.5px; color: #5c5568;
+    white-space: pre-wrap; line-height: 1.8;
+  }
+  .diagbox.on { display: block; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">💅</div>
+    <div class="brand-text">
+      <b>和美甲师聊聊</b>
+      <span>AI 先接待，价格以到店确认为准</span>
+    </div>
+  </div>
+  <nav class="topnav">
+    <a href="/web/chat.html" class="on">AI 对话</a>
+    <a href="/web/recommend.html">选款推荐</a>
+    <a href="/web/gallery.html">款式图库</a>
+    <a href="/web/">报价器</a>
+    <a href="/web/schedule.html">档期管理</a>
+  </nav>
+</div>
+
+<!-- 欢迎页 -->
+<div class="welcome" id="welcome">
+  <div class="welcome-inner">
+    <div class="hello">
+      <div class="hello-avatar">💅</div>
+      <h1>想做点什么款？</h1>
+      <p>发张图估个价，或者说说的手，我给你挑几款</p>
+    </div>
+
+    <div class="actions" id="actions">
+      <button class="action primary" data-action="upload">
+        <span class="ico">📷</span>
+        <span>
+          <span class="t">发图问价</span>
+          <span class="d">有喜欢的款？发图我看看做法和价格</span>
+        </span>
+        <span class="arrow">›</span>
+      </button>
+
+      <button class="action" data-action="chat" data-text="帮我推荐">
+        <span class="ico">✨</span>
+        <span>
+          <span class="t">帮我推荐</span>
+          <span class="d">说说手和预算，我挑几款合适的给你看</span>
+        </span>
+        <span class="arrow">›</span>
+      </button>
+
+      <button class="action" data-action="price">
+        <span class="ico">📋</span>
+        <span>
+          <span class="t">先看价格表</span>
+          <span class="d">全部价目一次性发你，不用等</span>
+        </span>
+        <span class="arrow">›</span>
+      </button>
+    </div>
+
+    <div class="welcome-note">
+      本甲 39 起 · 上门服务 · 提前一天约<br>
+      手工做不出 100% 一样的网图，会有轻微色差
+    </div>
+  </div>
+</div>
+
+<!-- 对话区 -->
+<div class="chat empty" id="chat"></div>
+<div class="diagbox" id="diagbox"></div>
+
+<!-- 输入区 -->
+<div class="composer">
+  <div class="inputrow">
+    <label class="imgbtn" id="imgbtn" for="file" title="发参考图">📷</label>
+    <input type="file" id="file" accept="image/*">
+    <input id="input" placeholder="说说你的手，或者想做什么款" autocomplete="off">
+    <button class="sendbtn" id="send">发送</button>
+  </div>
+  <div class="preview" id="preview"></div>
+  <div class="tip">价格以到店确认为准 · 档期需本人确认</div>
+</div>
+
+<button class="diag" id="diag">ⓘ 发不了图？</button>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const history = [];
+let busy = false;
+let pendingImage = null;
+let started = false;
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 900;
+      let { width: w, height: h } = img;
+      if (Math.max(w, h) > max) {
+        const r = max / Math.max(w, h);
+        w = Math.round(w * r);
+        h = Math.round(h * r);
+      }
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL("image/jpeg", 0.82).split(",")[1]);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function handleFile(f) {
+  if (!f || !f.type.startsWith("image/")) {
+    alert("只支持图片文件，换一张 JPG / PNG 试试");
+    return;
+  }
+  try {
+    const b64 = await fileToBase64(f);
+    pendingImage = { data: b64, mime: "image/jpeg" };
+    $("preview").classList.add("on");
+    $("preview").innerHTML = `
+      <img src="data:image/jpeg;base64,${b64}" alt="预览">
+      <span class="hint">图已选好，点「发送」发出去</span>
+      <button class="x" id="rmimg" title="移除">×</button>`;
+    $("rmimg").onclick = clearImage;
+    $("input").focus();
+  } catch (err) {
+    console.error("图片读取失败", err);
+    alert("这张图读不出来（可能是 HEIC 格式），换一张 JPG / PNG 试试");
+  }
+}
+
+function clearImage() {
+  pendingImage = null;
+  $("preview").classList.remove("on");
+  $("preview").innerHTML = "";
+  $("file").value = "";
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function fmt(s) {
+  return esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>");
+}
+
+/* 第一次发言时，把欢迎页收起来，切到对话 */
+function enterChat() {
+  if (started) return;
+  started = true;
+  $("welcome").classList.add("hide");
+  $("chat").classList.remove("empty");
+}
+
+function makeMsg(role, innerHtml) {
+  const wrap = document.createElement("div");
+  wrap.className = "msg " + (role === "user" ? "user" : "bot");
+  if (role !== "user") {
+    const av = document.createElement("div");
+    av.className = "avatar";
+    av.textContent = "💅";
+    wrap.appendChild(av);
+  }
+  const b = document.createElement("div");
+  b.className = "bubble";
+  b.innerHTML = innerHtml;
+  wrap.appendChild(b);
+  $("chat").appendChild(wrap);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  return wrap;
+}
+
+function addMsg(role, text, cards) {
+  makeMsg(role, fmt(text));
+
+  if (cards?.length) {
+    const box = document.createElement("div");
+    box.className = "cards";
+    box.innerHTML = cards.map((c) => `
+      <div class="rcard">
+        <img src="${c.img}" alt="${esc(c.name)}">
+        <div class="rb">
+          <div class="rn">${esc(c.name)}</div>
+          <div class="rp">${esc(c.priceText)}</div>
+          <div class="rr">${esc(c.reason)}　${esc(c.durationText)}</div>
+        </div>
+      </div>`).join("");
+    $("chat").appendChild(box);
+    $("chat").scrollTop = $("chat").scrollHeight;
+  }
+}
+
+function addHtml(role, html) {
+  makeMsg(role, html);
+}
+
+function buildPriceHtml(p) {
+  const baseRows = p.base
+    .map((b) => `<tr><td>${b.name}</td><td class="pt-price">¥${b.price}</td><td class="pt-note">${b.suitable || ""}</td></tr>`)
+    .join("");
+
+  const styleRows = [
+    ["钻饰（小钻 / 单钻）", "免费", "随便加"],
+    ["法式 / 波点 / 腮红 / 渐变 / 晕染", "单指 2 元 · 整手 8 元", "这几种共用指次，每满 10 指次收 8 元"],
+    ["极简手绘（细线条 / 简笔画）", "单指 3 元 · 整手 10 元", ""],
+    ["稍复杂手绘", "5 元/指", "没有整手打包价"],
+    ["卡通图案", "5–10 元/指", "具体看图案"],
+    ["款式钻 / 堆钻 / 浮雕", "5–10 元/指", "具体看款式"],
+    ["复杂晕染（醋酸）", "10 元/指", "最多 4 指，4 指打包 36"],
+    ["魔镜粉 / 海莉粉 / 蹭粉", "整手 10 元 · 单指 2 元", "做几个手指先确认"],
+  ]
+    .map(([n, pr, note]) => `<tr><td>${n}</td><td class="pt-price">${pr}</td><td class="pt-note">${note}</td></tr>`)
+    .join("");
+
+  const feeRows = p.fees
+    .map(
+      (f) =>
+        `<tr><td>${f.name}</td><td class="pt-price">¥${f.price}</td><td class="pt-note">${f.unit === "per_finger" ? "按手指数" : "每次"}</td></tr>`
+    )
+    .join("");
+
+  return `
+    <div class="pt-title">基础项目（含卸本甲 + 去死皮 + 湿处理）</div>
+    <table><thead><tr><th>项目</th><th>价格</th><th>适合 / 注意</th></tr></thead><tbody>${baseRows}</tbody></table>
+    <div class="pt-title">款式加价</div>
+    <table><thead><tr><th>做法</th><th>价格</th><th>说明</th></tr></thead><tbody>${styleRows}</tbody></table>
+    <div class="pt-title">其他</div>
+    <table><thead><tr><th>项目</th><th>价格</th><th></th></tr></thead><tbody>${feeRows}</tbody></table>
+    <div class="pt-note" style="margin-top:8px">
+      老顾客（来过一次以上）整单 95 折，保留两位小数。<br>
+      迟到：10 分钟内免费，10–30 分钟每分钟 1 元，超 30 分钟取消且不再接单。<br>
+      做工时长是普通店的 1.5–2 倍（本甲 2–3 小时，延长 3–4 小时），不留够时间会做不完。<br>
+      不满意可当场卸甲，不收钱。
+    </div>`;
+}
+
+async function showPriceTable() {
+  try {
+    const p = await fetch("/knowledge/pricing.json").then((r) => r.json());
+    enterChat();
+    addMsg("user", "获取价格表");
+    addHtml("bot", buildPriceHtml(p));
+    history.push({ role: "user", content: "（点了获取价格表）" });
+    history.push({ role: "assistant", content: "[已向客人展示完整价格表]" });
+  } catch {
+    enterChat();
+    addMsg("bot", "价格表加载失败，刷新一下页面再试？");
+  }
+}
+
+function addTyping() {
+  const el = document.createElement("div");
+  el.className = "typing";
+  el.id = "typing";
+  el.innerHTML = `<div class="avatar">💅</div><span class="dots"><i></i><i></i><i></i></span>`;
+  $("chat").appendChild(el);
+  $("chat").scrollTop = $("chat").scrollHeight;
+}
+function delTyping() {
+  $("typing")?.remove();
+}
+
+
+async function send(text) {
+  if (busy || (!text.trim() && !pendingImage)) return;
+  enterChat();
+  const img = pendingImage;
+  busy = true;
+  $("send").disabled = true;
+  $("input").value = "";
+
+  const shown = (text.trim() || "") + (img ? (text.trim() ? "　[图片]" : "[图片]") : "");
+  addMsg("user", shown);
+  history.push({
+    role: "user",
+    content: (text.trim() || "（我发了一张图）") + (img ? "（附了一张参考图）" : ""),
+  });
+  if (img) clearImage();
+  addTyping();
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ messages: history, image: img || undefined }),
+    });
+    const data = await res.json();
+    delTyping();
+    if (data.error) {
+      addMsg("bot", "哎呀出错了：" + data.error);
+    } else {
+      history.push({ role: "assistant", content: data.reply });
+      const cardNote = data.cards?.length
+        ? "\n（这一轮推荐的款式：" + data.cards.map((c) => `${c.id} ${c.name} ${c.priceText}`).join("；") + "）"
+        : "";
+      history[history.length - 1].content += cardNote;
+      addMsg("bot", data.reply, data.cards);
+    }
+  } catch (e) {
+    delTyping();
+    addMsg("bot", "网络不太行，再试一次？");
+  } finally {
+    busy = false;
+    $("send").disabled = false;
+    $("input").focus();
+  }
+}
+
+$("send").onclick = () => send($("input").value);
+$("input").onkeydown = (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send($("input").value); }
+};
+
+/* 欢迎页三张卡片 */
+$("actions").onclick = (e) => {
+  const b = e.target.closest(".action");
+  if (!b) return;
+  const a = b.dataset.action;
+  if (a === "upload") { $("file").click(); return; }
+  if (a === "price") { showPriceTable(); return; }
+  if (a === "chat") { send(b.dataset.text || "帮我推荐"); return; }
+};
+
+let lastEvent = "还没操作过";
+function markEvent(s) { lastEvent = s; console.log("[chat]", s); }
+
+$("imgbtn").addEventListener("click", () => markEvent("点了 📷 按钮"));
+$("file").addEventListener("click", () => markEvent("文件选择框被唤起（如果这里没弹出，是浏览器拦的）"));
+$("file").onchange = (e) => {
+  markEvent(`选完文件了：${e.target.files?.[0]?.name || "空"}`);
+  handleFile(e.target.files?.[0]);
+};
+
+$("diag").onclick = () => {
+  const box = $("diagbox");
+  box.classList.toggle("on");
+  if (!box.classList.contains("on")) return;
+  box.textContent = [
+    `最后一步：${lastEvent}`,
+    `是否嵌在 iframe 里：${window.self !== window.top ? "是 —— 这会导致选图被拦" : "不是"}`,
+    `页面地址：${location.href}`,
+    `浏览器：${navigator.userAgent}`,
+    `支持选文件：${"files" in document.createElement("input") ? "是" : "否"}`,
+    `图片已选：${pendingImage ? "是" : "否"}`,
+  ].join("\n");
+};
+
+document.addEventListener("paste", (e) => {
+  const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+  if (item) { e.preventDefault(); handleFile(item.getAsFile()); }
+});
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", (e) => {
+  e.preventDefault();
+  const f = e.dataTransfer?.files?.[0];
+  if (f) handleFile(f);
+});
+
+// 分享用：chat.html?price=1 直接展开价格表
+if (new URLSearchParams(location.search).get("price") === "1") {
+  setTimeout(showPriceTable, 300);
+}
+
+$("input").focus();
+</script>
+</body>
+</html>

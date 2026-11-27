@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>档期管理 · 美甲</title>
+<style>
+  :root {
+    --bg: #f7f4fc; --card: #fff; --ink: #2c2733; --muted: #857d94;
+    --line: #e7e1f2; --purple: #8b5cf6; --purple-deep: #6d3fd4;
+    --purple-soft: #ede4fb; --ok: #2f9e6e; --ok-bg: #e7f6ef;
+    --danger: #c0455e; --danger-bg: #fdecef; --warn: #8a6a12; --warn-bg: #fbf3e2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; padding-bottom: 60px;
+  }
+  .topbar {
+    display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+    background: rgba(255,255,255,.86); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 30;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; }
+  .brand-mark {
+    width: 32px; height: 32px; border-radius: 11px;
+    background: linear-gradient(135deg, #8b5cf6, #c4b5fd);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    box-shadow: 0 3px 10px rgba(139,92,246,.3);
+  }
+  .brand b { font-size: 14px; }
+  .topnav { margin-left: auto; display: flex; gap: 5px; flex-wrap: wrap; }
+  .topnav a {
+    font-size: 12px; color: var(--muted); text-decoration: none;
+    padding: 5px 11px; border-radius: 999px; transition: .15s; white-space: nowrap;
+  }
+  .topnav a:hover { background: var(--purple-soft); color: var(--purple-deep); }
+  .topnav a.on { background: var(--purple-soft); color: var(--purple-deep); font-weight: 600; }
+
+  .wrap { max-width: 960px; margin: 0 auto; padding: 22px 20px 0; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 18px 20px; margin-bottom: 18px;
+    box-shadow: 0 2px 12px rgba(109,63,212,.05);
+  }
+  .card h2 {
+    font-size: 14px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px;
+  }
+  .card h2::before { content: ""; width: 3px; height: 14px; background: var(--purple); border-radius: 2px; }
+  .card .hint { font-size: 12px; color: var(--muted); margin: 0 0 14px 11px; }
+
+  /* 概览统计 */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  @media (max-width: 620px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 13px 15px; box-shadow: 0 2px 10px rgba(109,63,212,.05);
+  }
+  .stat .n { font-size: 24px; font-weight: 700; color: var(--purple-deep); line-height: 1.2; }
+  .stat .n.green { color: var(--ok); }
+  .stat .n.muted { color: var(--muted); }
+  .stat .l { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
+  /* 每周固定 */
+  .week-row {
+    display: grid; grid-template-columns: 62px 1fr; gap: 10px;
+    align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--line);
+  }
+  .week-row:last-of-type { border-bottom: none; }
+  .weekly-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line);
+  }
+  .wf-hint { font-size: 12px; color: var(--muted); }
+  .btn-lg { padding: 9px 22px; font-size: 13.5px; font-weight: 600; }
+  .wd { font-size: 13px; font-weight: 600; color: #4a4055; }
+  .ranges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .range-inputs { display: flex; align-items: center; gap: 5px; }
+  .range-inputs input[type=time] {
+    font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fff; width: 92px;
+  }
+  .range-inputs .dash { color: #c9c1d6; }
+  .rm {
+    border: 0; background: transparent; color: #c9c1d6; cursor: pointer;
+    font-size: 15px; line-height: 1; padding: 2px 4px;
+  }
+  .rm:hover { color: var(--danger); }
+  .add {
+    font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 8px;
+    border: 1px dashed #cbb8f5; background: #fdfcff; color: var(--purple-deep); cursor: pointer;
+  }
+  .add:hover { background: var(--purple-soft); }
+  .off-tag {
+    font-size: 12px; color: var(--muted); background: #f3effa;
+    padding: 3px 10px; border-radius: 8px;
+  }
+
+  /* 未来几天 */
+  .day {
+    display: grid; grid-template-columns: 84px 1fr auto; gap: 12px;
+    align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--line);
+  }
+  .day:last-child { border-bottom: none; }
+  .day.today { background: linear-gradient(90deg, var(--purple-soft), transparent); border-radius: 10px; padding-left: 10px; }
+  .d-date { font-size: 13px; font-weight: 600; padding-top: 2px; }
+  .d-date small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+  .d-today-tag {
+    font-size: 10px; background: var(--purple); color: #fff; padding: 1px 6px;
+    border-radius: 5px; margin-left: 4px; vertical-align: 1px;
+  }
+  .d-body { min-width: 0; }
+  .d-blocks { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .blk {
+    font-size: 12px; padding: 3px 10px; border-radius: 8px;
+    font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .blk.free {
+    background: var(--ok-bg); color: var(--ok); border: 1px solid #cbeadd;
+    cursor: pointer; transition: .15s;
+  }
+  .blk.free:hover {
+    background: #d6f0e4; border-color: #9fd9c3;
+    box-shadow: 0 2px 8px rgba(47,158,110,.18);
+  }
+  .blk.free::after { content: "＋"; font-size: 11px; opacity: .55; margin-left: 1px; }
+  .blk.taken { background: var(--purple-soft); color: var(--purple-deep); border: 1px solid #dcccf7; cursor: pointer; transition: .15s; }
+  .blk.taken::before { content: "●"; font-size: 8px; }
+  .blk.taken:hover { background: #e2d4fa; border-color: #c4aef2; box-shadow: 0 2px 8px rgba(139,92,246,.18); }
+  .blk .who { font-size: 11px; opacity: .82; }
+  .d-off { font-size: 12px; color: var(--muted); background: #f3effa; padding: 3px 10px; border-radius: 8px; }
+  .d-note { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+  .d-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+  .d-ov { font-size: 10.5px; color: var(--warn); background: var(--warn-bg); padding: 1px 7px; border-radius: 6px; }
+  .d-full { font-size: 10.5px; color: var(--danger); background: var(--danger-bg); padding: 1px 7px; border-radius: 6px; }
+  .d-cnt { font-size: 10.5px; color: var(--ok); background: var(--ok-bg); padding: 1px 7px; border-radius: 6px; }
+  .d-actions { display: flex; gap: 6px; padding-top: 1px; }
+  .btn-s {
+    font: inherit; font-size: 12px; padding: 5px 12px; border-radius: 9px;
+    border: 1px solid var(--line); background: #fff; color: #6b6478; cursor: pointer;
+    transition: .15s; white-space: nowrap;
+  }
+  .btn-s:hover { border-color: #cbb8f5; color: var(--purple-deep); }
+  .btn-s.primary { background: var(--purple); border-color: var(--purple); color: #fff; }
+  .btn-s.primary:hover { background: var(--purple-deep); }
+
+  /* 编辑弹层 */
+  .sheet {
+    display: none; position: fixed; inset: 0; background: rgba(44,39,51,.42);
+    z-index: 80; align-items: flex-end; justify-content: center; padding: 0;
+  }
+  .sheet.on { display: flex; }
+  @media (min-width: 620px) { .sheet { align-items: center; } }
+  .sheet-inner {
+    background: #fff; width: 100%; max-width: 460px; border-radius: 20px 20px 0 0;
+    padding: 20px 20px 24px; max-height: 88vh; overflow-y: auto;
+  }
+  @media (min-width: 620px) { .sheet-inner { border-radius: 20px; } }
+  .sheet h3 { margin: 0 0 3px; font-size: 16px; }
+  .sheet .sd { color: var(--muted); font-size: 12.5px; margin-bottom: 16px; }
+  .sheet .ranges { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 14px; }
+  .sheet .range-inputs { justify-content: space-between; }
+  .sheet .range-inputs input[type=time] { width: 120px; padding: 7px 9px; }
+  .sheet-foot { display: flex; gap: 9px; margin-top: 16px; }
+  .sheet-foot button {
+    flex: 1; font: inherit; padding: 11px; border-radius: 12px; cursor: pointer; border: 1px solid var(--line);
+    background: #fff; color: #6b6478;
+  }
+  .sheet-foot .save { background: var(--purple); border-color: var(--purple); color: #fff; font-weight: 600; }
+  .sheet-foot .save:hover { background: var(--purple-deep); }
+  .sheet-foot .rest { color: var(--danger); border-color: #f2ccd4; }
+
+  /* 表单 */
+  .form-row { display: grid; grid-template-columns: 78px 1fr; gap: 10px; align-items: center; margin-bottom: 11px; }
+  .form-row label { font-size: 13px; color: #4a4055; }
+  .form-row input, .form-row select {
+    font: inherit; font-size: 13.5px; padding: 9px 11px; border: 1px solid var(--line);
+    border-radius: 10px; background: #fff; width: 100%; outline: none;
+  }
+  .form-row input:focus, .form-row select:focus { border-color: #b79bf2; }
+
+  /* 快速记一笔 */
+  .sheet-inner.quick { max-width: 420px; }
+  .q-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .q-row input, .q-row select {
+    flex: 1; font: inherit; font-size: 14px; padding: 11px 13px;
+    border: 1px solid var(--line); border-radius: 12px; background: #fff;
+    outline: none; min-width: 0;
+  }
+  .q-row input:focus, .q-row select:focus { border-color: #b79bf2; }
+  .q-row select { flex: 0 0 130px; cursor: pointer; }
+  .more-toggle {
+    background: none; border: 0; color: var(--muted); font: inherit;
+    font-size: 12.5px; cursor: pointer; padding: 2px 0; margin-bottom: 4px;
+  }
+  .more-toggle:hover { color: var(--purple-deep); }
+  .q-more { display: none; }
+  .q-more.open { display: block; }
+
+  /* 详情行 */
+  .dbody { margin-bottom: 6px; }
+  .dline {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px;
+  }
+  .dline:last-child { border-bottom: none; }
+  .dline span { color: var(--muted); flex-shrink: 0; }
+  .dline b { font-weight: 600; text-align: right; word-break: break-all; }
+  #qInfo { font-size: 13px; color: #4a4055; }
+  #qInfo b { color: var(--purple-deep); font-size: 15px; }
+  #qInfo .qhint { color: var(--muted); font-size: 11.5px; }
+
+  /* 订单 */
+  .order {
+    display: grid; grid-template-columns: 1fr auto; gap: 10px;
+    align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--line);
+  }
+  .order:last-child { border-bottom: none; }
+  .o-main { font-size: 13px; }
+  .o-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .o-status {
+    font-size: 11px; padding: 2px 8px; border-radius: 6px; white-space: nowrap;
+    background: var(--warn-bg); color: var(--warn);
+  }
+  .o-status.confirmed { background: var(--ok-bg); color: var(--ok); }
+  .o-status.cancelled { background: #f3effa; color: var(--muted); }
+  .empty-tip { color: var(--muted); font-size: 13px; padding: 14px 0; text-align: center; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(14px);
+    background: #2c2733; color: #fff; padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: .22s; z-index: 100;
+    max-width: 88vw; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">💅</div>
+    <b>档期管理</b>
+  </div>
+  <nav class="topnav">
+    <a href="/web/chat.html">AI 对话</a>
+    <a href="/web/recommend.html">选款推荐</a>
+    <a href="/web/gallery.html">款式图库</a>
+    <a href="/web/">报价器</a>
+    <a href="/web/schedule.html" class="on">档期管理</a>
+  </nav>
+</div>
+
+<div class="wrap">
+  <h1>我的档期</h1>
+  <div class="sub">你在这里设的时间，客人问"哪天有空"时 bot 会照这个答。</div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="card">
+    <h2>接下来三周</h2>
+    <p class="hint">紫色是已约，绿色是还空着。<b>点绿色的空档就能记一笔</b>；点「改」调营业时间。</p>
+    <div id="days"></div>
+  </div>
+
+  <div class="card">
+    <h2>每周固定时间</h2>
+    <p class="hint">这是默认值。某天时间不一样，去上面点「改」单独设置，会覆盖这里。</p>
+    <div id="weekly"></div>
+  </div>
+
+  <div class="card">
+    <h2>预约记录</h2>
+    <p class="hint">客人自己约的、你私下接的，都记在这里。记了之后那段时间就不会再被约。</p>
+    <button class="btn-s primary btn-lg" id="addOrder" style="margin-bottom:14px">＋ 手动记一笔预约</button>
+    <div id="orders"></div>
+  </div>
+</div>
+
+<!-- 点空档快速记一笔 -->
+<div class="sheet" id="quickSheet">
+  <div class="sheet-inner quick">
+    <h3 id="qTitle">记一笔预约</h3>
+    <div class="sd" id="qInfo"></div>
+
+    <input type="hidden" id="qDate">
+    <input type="hidden" id="qStart">
+
+    <div class="q-row">
+      <input type="text" id="qName" placeholder="客人叫什么（比如 小美）" autocomplete="off">
+    </div>
+    <div class="q-row">
+      <select id="qHours">
+        <option value="2">做 2 小时</option>
+        <option value="2.5" selected>做 2.5 小时</option>
+        <option value="3">做 3 小时</option>
+        <option value="3.5">做 3.5 小时</option>
+        <option value="4">做 4 小时</option>
+      </select>
+      <input type="text" id="qStyle" placeholder="什么款（可不填）" autocomplete="off">
+    </div>
+
+    <button class="more-toggle" id="qMoreToggle">＋ 微信、备注</button>
+    <div class="q-more" id="qMore">
+      <div class="q-row"><input type="text" id="qContact" placeholder="微信 / 手机"></div>
+      <div class="q-row"><input type="text" id="qNote" placeholder="备注：过敏、特殊要求…"></div>
+    </div>
+
+    <div class="sheet-foot">
+      <button id="qCancel">取消</button>
+      <button class="save" id="qSave">记下</button>
+    </div>
+  </div>
+</div>
+
+<!-- 已约时段详情 -->
+<div class="sheet" id="detailSheet">
+  <div class="sheet-inner quick">
+    <h3 id="dTitle">预约详情</h3>
+    <div class="dbody" id="dBody"></div>
+    <div class="sheet-foot">
+      <button id="dClose">关闭</button>
+      <button class="rest" id="dCancelBtn">取消这单</button>
+    </div>
+  </div>
+</div>
+
+<!-- 补录预约 -->
+<div class="sheet" id="orderSheet">
+  <div class="sheet-inner">
+    <h3>记一笔预约</h3>
+    <div class="sd">客人微信找你的、当面约的，填这里。填完记得回她确认。</div>
+
+    <div class="form-row">
+      <label>日期</label>
+      <input type="date" id="oDate">
+    </div>
+    <div class="form-row">
+      <label>开始时间</label>
+      <input type="time" id="oStart" value="18:00">
+    </div>
+    <div class="form-row">
+      <label>做多久</label>
+      <select id="oHours">
+        <option value="2">2 小时</option>
+        <option value="2.5" selected>2.5 小时</option>
+        <option value="3">3 小时</option>
+        <option value="3.5">3.5 小时</option>
+        <option value="4">4 小时</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>怎么称呼</label>
+      <input type="text" id="oName" placeholder="比如 小鹿">
+    </div>
+    <div class="form-row">
+      <label>微信/手机</label>
+      <input type="text" id="oContact" placeholder="方便以后找她">
+    </div>
+    <div class="form-row">
+      <label>做什么款</label>
+      <input type="text" id="oStyle" placeholder="比如 深蓝本甲 + 法式">
+    </div>
+    <div class="form-row">
+      <label>价格</label>
+      <input type="number" id="oPrice" placeholder="可不填">
+    </div>
+    <div class="form-row">
+      <label>备注</label>
+      <input type="text" id="oNote" placeholder="过敏、特殊要求…">
+    </div>
+
+    <div class="sheet-foot">
+      <button id="orderCancel">取消</button>
+      <button class="save" id="orderSave">记下</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="sheet-inner">
+    <h3 id="sheetTitle">设置档期</h3>
+    <div class="sd" id="sheetDate"></div>
+    <div class="ranges" id="sheetRanges"></div>
+    <button class="add" id="sheetAdd">+ 加一个时间段</button>
+    <div class="sheet-foot">
+      <button id="sheetCancel">取消</button>
+      <button class="save" id="sheetSave">保存</button>
+    </div>
+    <div class="sheet-foot" style="margin-top:9px">
+      <button class="rest" id="sheetRest" style="flex:1">这天休息</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已保存</div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+let DATA = null;
+let editing = null;
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+async function load() {
+  const r = await fetch("/api/schedule").then((x) => x.json());
+  if (r.error) { toast("读取失败：" + r.error); return; }
+  DATA = r;
+  renderStats();
+  renderWeekly();
+  renderDays();
+  renderOrders();
+}
+
+/* ---------- 每周固定：改完一次性保存 ---------- */
+function renderWeekly() {
+  const names = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  $("weekly").innerHTML =
+    names
+      .map((n, i) => {
+        const ranges = DATA.weekly[String(i)] || [];
+        const body = ranges.length
+          ? `<div class="ranges">${ranges
+              .map(
+                (r, j) => `<div class="range-inputs" data-wd="${i}" data-idx="${j}">
+                  <input type="time" value="${r[0]}" data-k="0">
+                  <span class="dash">–</span>
+                  <input type="time" value="${r[1]}" data-k="1">
+                  <button class="rm" data-rmwd="${i}" data-idx="${j}" title="删掉这段">×</button>
+                </div>`
+              )
+              .join("")}<button class="add" data-addwd="${i}">+</button></div>`
+          : `<div class="ranges"><span class="off-tag">休息</span><button class="add" data-addwd="${i}">+ 加时间</button></div>`;
+        return `<div class="week-row"><div class="wd">${n}</div><div>${body}</div></div>`;
+      })
+      .join("") +
+    `<div class="weekly-foot">
+       <span class="wf-hint">改完点右边保存，一次存全部</span>
+       <button class="btn-s primary btn-lg" id="saveWeekly">保存全部</button>
+     </div>`;
+
+  // 增删时间段只在本地改，不立刻提交
+  $("weekly").onclick = (e) => {
+    const addBtn = e.target.closest("[data-addwd]");
+    if (addBtn) {
+      const wd = addBtn.dataset.addwd;
+      DATA.weekly[wd] = (DATA.weekly[wd] || []).concat([["10:00", "18:00"]]);
+      renderWeekly();
+      return;
+    }
+    const rmBtn = e.target.closest("[data-rmwd]");
+    if (rmBtn) {
+      const wd = rmBtn.dataset.rmwd;
+      DATA.weekly[wd].splice(Number(rmBtn.dataset.idx), 1);
+      renderWeekly();
+      return;
+    }
+    if (e.target.closest("#saveWeekly")) saveAllWeekly();
+  };
+}
+
+async function saveAllWeekly() {
+  const rows = [...$("weekly").querySelectorAll(".week-row")];
+  const names = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  let changed = 0;
+  for (let i = 0; i < 7; i++) {
+    const row = rows[i];
+    const groups = [...row.querySelectorAll(".range-inputs")].map((g) => {
+      const [a, b] = g.querySelectorAll("input[type=time]");
+      return [a.value, b.value];
+    });
+    const clean = groups.filter((r) => r[0] && r[1] && r[0] < r[1]);
+    const old = JSON.stringify(DATA.weekly[String(i)] || []);
+    if (JSON.stringify(clean) !== old) {
+      const r = await fetch("/api/schedule/weekly", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ weekday: i, ranges: clean }),
+      }).then((x) => x.json());
+      if (r.error) { toast(names[i] + " 保存失败：" + r.error); return; }
+      changed++;
+    }
+  }
+  toast(changed ? `已保存 ${changed} 天的改动` : "没有改动");
+  await load();
+}
+
+/* ---------- 未来三周 ---------- */
+function renderStats() {
+  const days = DATA.days;
+  const open = days.filter((d) => !d.closed);
+  const booked = days.filter((d) => d.orderCount > 0);
+  const free = days.filter((d) => !d.closed && !d.full && d.freeSegments.length);
+  const totalOrders = days.reduce((s, d) => s + d.orderCount, 0);
+  $("stats").innerHTML = `
+    <div class="stat"><div class="n">${totalOrders}</div><div class="l">未来三周预约</div></div>
+    <div class="stat"><div class="n green">${free.length}</div><div class="l">还能约的天数</div></div>
+    <div class="stat"><div class="n">${booked.length}</div><div class="l">已有单的天数</div></div>
+    <div class="stat"><div class="n muted">${open.length}</div><div class="l">营业天数</div></div>`;
+}
+
+function renderDays() {
+  if (!DATA.days.some((d) => !d.closed)) {
+    $("days").innerHTML = `<div class="empty-tip">还没设营业时间。去下面「每周固定时间」填一下。</div>`;
+    return;
+  }
+
+  $("days").innerHTML = DATA.days
+    .map((d) => {
+      const md = d.date.slice(5).replace("-", "/");
+      let body;
+
+      if (d.closed) {
+        body = `<div class="d-blocks"><span class="d-off">休息</span></div>`;
+      } else {
+        const blocks = [
+          ...d.takenSegments.map(
+            (t) =>
+              `<span class="blk taken" data-order="${t.id}" title="点一下看详情 / 取消">${t.start}–${t.end} <span class="who">${t.name || ""}</span></span>`
+          ),
+          ...d.freeSegments.map(
+            (f) =>
+              `<span class="blk free" data-quick="${d.date}" data-from="${f[0]}" data-to="${f[1]}" title="点一下记一笔">${f[0]}–${f[1]} 空</span>`
+          ),
+        ];
+        const hint = d.tooSoon
+          ? `<span class="d-off">太近了，不满 ${d.noticeHours} 小时不能约</span>`
+          : "";
+        body = `<div class="d-blocks">${blocks.join("") || hint || '<span class="d-off">无可用时段</span>'}</div>`;
+
+        const tags = [];
+        if (d.orderCount) tags.push(`<span class="d-cnt">已约 ${d.orderCount}/${d.maxPerDay}</span>`);
+        if (d.orderCount >= d.maxPerDay) tags.push(`<span class="d-full">已约满</span>`);
+        else if (d.tooSoon) tags.push(`<span class="d-ov">不满 ${d.noticeHours} 小时</span>`);
+        if (d.overridden) tags.push(`<span class="d-ov">单独设置</span>`);
+        if (tags.length) body += `<div class="d-tags">${tags.join("")}</div>`;
+        if (d.note) body += `<div class="d-note">${d.note}</div>`;
+      }
+
+      return `<div class="day${d.isToday ? " today" : ""}">
+        <div class="d-date">${md}${d.isToday ? '<span class="d-today-tag">今天</span>' : ""}<small>${d.weekday}</small></div>
+        <div class="d-body">${body}</div>
+        <div class="d-actions"><button class="btn-s primary" data-edit="${d.date}">改</button></div>
+      </div>`;
+    })
+    .join("");
+
+  $("days").onclick = (e) => {
+    const q = e.target.closest("[data-quick]");
+    if (q) { openQuick(q.dataset.quick, q.dataset.from, q.dataset.to); return; }
+    const o = e.target.closest("[data-order]");
+    if (o) { openOrderDetail(o.dataset.order); return; }
+    const b = e.target.closest("[data-edit]");
+    if (b) openSheet(b.dataset.edit);
+  };
+}
+
+/* ---------- 点已约的时段：看详情 / 取消 ---------- */
+let detailId = null;
+
+function openOrderDetail(id) {
+  const o = DATA.orders.find((x) => x.id === id);
+  if (!o) return;
+  detailId = id;
+  $("dTitle").textContent = `${o.date.slice(5).replace("-", "/")} ${o.start}–${o.end}`;
+  $("dBody").innerHTML = `
+    <div class="dline"><span>客人</span><b>${o.name}</b></div>
+    ${o.contact ? `<div class="dline"><span>联系</span><b>${o.contact}</b></div>` : ""}
+    <div class="dline"><span>款式</span><b>${o.style || "待定"}</b></div>
+    ${o.price ? `<div class="dline"><span>价格</span><b>¥${o.price}</b></div>` : ""}
+    ${o.note ? `<div class="dline"><span>备注</span><b>${o.note}</b></div>` : ""}
+    <div class="dline"><span>状态</span><b>${o.statusText}${o.source === "manual" ? "（手记）" : ""}</b></div>`;
+  $("dCancelBtn").style.display = o.status === "cancelled" ? "none" : "";
+  $("detailSheet").classList.add("on");
+}
+
+$("dClose").onclick = () => $("detailSheet").classList.remove("on");
+$("detailSheet").onclick = (e) => { if (e.target === $("detailSheet")) $("detailSheet").classList.remove("on"); };
+
+$("dCancelBtn").onclick = async () => {
+  const o = DATA.orders.find((x) => x.id === detailId);
+  if (!confirm(`确定取消 ${o?.name || ""} 这单？时间会腾出来。`)) return;
+  const r = await fetch("/api/orders/cancel", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id: detailId }),
+  }).then((x) => x.json());
+  if (r.error) { toast(r.error); return; }
+  $("detailSheet").classList.remove("on");
+  toast("已取消，这段时间空出来了");
+  await load();
+};
+
+/* ---------- 点空档直接记一笔 ---------- */
+function openQuick(date, from, to) {
+  const d = DATA.days.find((x) => x.date === date);
+  $("qDate").value = date;
+  $("qStart").value = from;
+  $("qInfo").innerHTML = `<b>${date.slice(5).replace("-", "/")} ${d?.weekday || ""}</b>　${from} 开始<span class="qhint">（这段原本空到 ${to}）</span>`;
+  $("qName").value = "";
+  $("qStyle").value = "";
+  $("qMore").classList.remove("open");
+  $("quickSheet").classList.add("on");
+  setTimeout(() => $("qName").focus(), 180);
+}
+
+$("qCancel").onclick = () => $("quickSheet").classList.remove("on");
+$("quickSheet").onclick = (e) => { if (e.target === $("quickSheet")) $("quickSheet").classList.remove("on"); };
+
+$("qMoreToggle").onclick = () => {
+  $("qMore").classList.toggle("open");
+  if ($("qMore").classList.contains("open")) setTimeout(() => $("qContact").focus(), 150);
+};
+
+$("qSave").onclick = async () => {
+  const name = $("qName").value.trim();
+  if (!name) { toast("填个称呼就行"); $("qName").focus(); return; }
+  const body = {
+    date: $("qDate").value,
+    start: $("qStart").value,
+    hours: Number($("qHours").value),
+    name,
+    contact: $("qContact").value,
+    style: $("qStyle").value,
+    note: $("qNote").value,
+  };
+  const r = await fetch("/api/orders/create", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((x) => x.json());
+  if (r.error) { toast(r.error); return; }
+  $("quickSheet").classList.remove("on");
+  toast(r.warning || r.summary);
+  await load();
+};
+
+/* ---------- 编辑弹层 ---------- */
+function openSheet(date) {
+  const d = DATA.days.find((x) => x.date === date);
+  editing = { date, ranges: d.closed ? [] : d.ranges.map((r) => [...r]) };
+  $("sheetTitle").textContent = date + " " + d.weekday;
+  $("sheetDate").textContent = d.overridden ? "这天有单独设置，保存后继续覆盖" : "未单独设置，保存后只影响这一天";
+  renderSheetRanges();
+  $("sheet").classList.add("on");
+}
+
+function renderSheetRanges() {
+  const box = $("sheetRanges");
+  if (!editing.ranges.length) {
+    box.innerHTML = `<div class="off-tag" style="align-self:flex-start">这天休息</div>`;
+    return;
+  }
+  box.innerHTML = editing.ranges
+    .map(
+      (r, i) => `<div class="range-inputs">
+        <input type="time" value="${r[0]}" data-i="${i}" data-k="0">
+        <span class="dash">–</span>
+        <input type="time" value="${r[1]}" data-i="${i}" data-k="1">
+        <button class="rm" data-rm="${i}" title="删掉">×</button>
+      </div>`
+    )
+    .join("");
+  box.querySelectorAll("input[type=time]").forEach((inp) => {
+    inp.onchange = () => {
+      editing.ranges[Number(inp.dataset.i)][Number(inp.dataset.k)] = inp.value;
+    };
+  });
+  box.querySelectorAll("[data-rm]").forEach((b) => {
+    b.onclick = () => {
+      editing.ranges.splice(Number(b.dataset.rm), 1);
+      renderSheetRanges();
+    };
+  });
+}
+
+$("sheetAdd").onclick = () => {
+  editing.ranges.push(["10:00", "18:00"]);
+  renderSheetRanges();
+};
+$("sheetCancel").onclick = () => $("sheet").classList.remove("on");
+$("sheet").onclick = (e) => { if (e.target === $("sheet")) $("sheet").classList.remove("on"); };
+
+$("sheetSave").onclick = async () => {
+  const all = editing.ranges;
+  const clean = all.filter((r) => r[0] && r[1] && r[0] < r[1]);
+  const bad = all.length - clean.length;
+  if (!clean.length) {
+    toast("至少留一个有效时间段，或者点「这天休息」");
+    return;
+  }
+  if (bad > 0 && !confirm(`有 ${bad} 个时间段开始时间晚于结束时间，会被丢掉。继续保存？`)) return;
+  const r = await fetch("/api/schedule/day", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ date: editing.date, closed: false, ranges: clean }),
+  }).then((x) => x.json());
+  if (r.error) { toast("保存失败：" + r.error); return; }
+  $("sheet").classList.remove("on");
+  toast(r.warning || "已保存");
+  await load();
+};
+
+$("sheetRest").onclick = async () => {
+  const r = await fetch("/api/schedule/day", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ date: editing.date, closed: true }),
+  }).then((x) => x.json());
+  if (r.error) { toast("保存失败：" + r.error); return; }
+  $("sheet").classList.remove("on");
+  toast(r.warning || "已标为休息");
+  await load();
+};
+
+/* ---------- 补录预约 ---------- */
+function openOrderSheet(prefillDate) {
+  const d = DATA.days.find((x) => x.date === prefillDate) || DATA.days[0];
+  $("oDate").value = (d && d.date) || new Date().toISOString().slice(0, 10);
+  $("oStart").value = "18:00";
+  $("oHours").value = "2.5";
+  $("oName").value = "";
+  $("oContact").value = "";
+  $("oStyle").value = "";
+  $("oPrice").value = "";
+  $("oNote").value = "";
+  $("orderSheet").classList.add("on");
+  setTimeout(() => $("oName").focus(), 200);
+}
+
+$("addOrder").onclick = () => openOrderSheet();
+$("orderCancel").onclick = () => $("orderSheet").classList.remove("on");
+$("orderSheet").onclick = (e) => { if (e.target === $("orderSheet")) $("orderSheet").classList.remove("on"); };
+
+$("orderSave").onclick = async () => {
+  const body = {
+    date: $("oDate").value,
+    start: $("oStart").value,
+    hours: Number($("oHours").value),
+    name: $("oName").value,
+    contact: $("oContact").value,
+    style: $("oStyle").value,
+    price: $("oPrice").value,
+    note: $("oNote").value,
+  };
+  if (!body.name.trim()) { toast("客人的称呼填一下"); $("oName").focus(); return; }
+  if (!body.date) { toast("选个日期"); return; }
+
+  const r = await fetch("/api/orders/create", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((x) => x.json());
+
+  if (r.error) { toast(r.error); return; }
+  $("orderSheet").classList.remove("on");
+  toast(r.warning || r.summary);
+  await load();
+};
+
+/* ---------- 订单 ---------- */
+function renderOrders() {
+  const list = [...DATA.orders].sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+  if (!list.length) {
+    $("orders").innerHTML = `<div class="empty-tip">还没有预约</div>`;
+    return;
+  }
+  $("orders").innerHTML = list
+    .map(
+      (o) => `<div class="order">
+        <div>
+          <div class="o-main"><b>${o.date.slice(5).replace("-", "/")} ${o.start}–${o.end}</b>　${o.name}　${o.style || "款式待定"}</div>
+          <div class="o-meta">${o.contact || "无联系方式"}${o.price ? " · ¥" + o.price : ""}${o.shape ? " · " + o.shape : ""}${o.note ? " · " + o.note : ""}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="o-status ${o.status}">${o.statusText}${o.source === "manual" ? "·手记" : ""}</span>
+          ${o.status !== "cancelled" ? `<button class="btn-s" data-cancel="${o.id}">取消</button>` : ""}
+        </div>
+      </div>`
+    )
+    .join("");
+
+  $("orders").onclick = async (e) => {
+    const b = e.target.closest("[data-cancel]");
+    if (!b) return;
+    if (!confirm("确定取消这个预约？")) return;
+    const r = await fetch("/api/orders/cancel", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: b.dataset.cancel }),
+    }).then((x) => x.json());
+    if (r.error) { toast(r.error); return; }
+    toast(r.summary);
+    await load();
+  };
+}
+
+load();
+</script>
+</body>
+</html>
