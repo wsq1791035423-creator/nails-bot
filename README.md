@@ -155,7 +155,17 @@ python scripts/import-from-docx.py "C:\Users\你\Desktop\你的文件.docx"
 
 `data/orders.json` 由程序自动读写，**不要手改**。
 
-每次服务启动会自动备份到 `data/backups/`，误删了能从那里找回来。
+每次服务启动会自动备份到 `data/backups/`（本地，不进 git），误删了能从那里找回来。
+
+### 把订单备份到 GitHub
+
+```bash
+node scripts/backup-orders.mjs
+```
+
+会在 `backups/` 生成一个快照并自动 commit + push。
+
+注意：快照里有客人姓名和微信，所以**仓库必须是 Private**。想恢复就把某个快照拷回 `data/orders.json`。
 
 ---
 
