@@ -209,6 +209,9 @@
   .preview .hint { color: var(--muted); font-size: 12px; }
 
   .tip { color: #b5adc2; font-size: 11px; margin-top: 8px; text-align: center; }
+  .bubble.limit {
+    background: #fdf3f5; border-color: #f2ccd4; color: #a8445a;
+  }
 
   /* ---------- 诊断 ---------- */
   .diag {
@@ -305,7 +308,7 @@
     <button class="sendbtn" id="send">发送</button>
   </div>
   <div class="preview" id="preview"></div>
-  <div class="tip">价格以到店确认为准 · 档期需本人确认</div>
+  <div class="tip" id="tip">价格以到店确认为准 · 档期需本人确认</div>
 </div>
 
 <button class="diag" id="diag">ⓘ 发不了图？</button>
@@ -316,6 +319,7 @@ const history = [];
 let busy = false;
 let pendingImage = null;
 let started = false;
+let limited = false;
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -401,7 +405,7 @@ function makeMsg(role, innerHtml) {
 }
 
 function addMsg(role, text, cards) {
-  makeMsg(role, fmt(text));
+  const wrap = makeMsg(role, fmt(text));
 
   if (cards?.length) {
     const box = document.createElement("div");
@@ -418,6 +422,7 @@ function addMsg(role, text, cards) {
     $("chat").appendChild(box);
     $("chat").scrollTop = $("chat").scrollHeight;
   }
+  return wrap;
 }
 
 function addHtml(role, html) {
@@ -478,6 +483,24 @@ async function showPriceTable() {
   }
 }
 
+/* 次数用完：提示 + 锁住输入框 */
+function showLimit(message) {
+  limited = true;
+  enterChat();
+  const wrap = document.createElement("div");
+  wrap.className = "msg bot";
+  wrap.innerHTML = `<div class="avatar">💅</div><div class="bubble limit">${esc(message)}</div>`;
+  $("chat").appendChild(wrap);
+  $("chat").scrollTop = $("chat").scrollHeight;
+
+  $("input").disabled = true;
+  $("input").placeholder = "今天的次数用完了，明天再来";
+  $("send").disabled = true;
+  $("imgbtn").style.pointerEvents = "none";
+  $("imgbtn").style.opacity = ".4";
+  $("tip").textContent = "每天最多聊 5 轮，明天 0 点恢复";
+}
+
 function addTyping() {
   const el = document.createElement("div");
   el.className = "typing";
@@ -492,7 +515,7 @@ function delTyping() {
 
 
 async function send(text) {
-  if (busy || (!text.trim() && !pendingImage)) return;
+  if (busy || limited || (!text.trim() && !pendingImage)) return;
   enterChat();
   const img = pendingImage;
   busy = true;
@@ -500,7 +523,7 @@ async function send(text) {
   $("input").value = "";
 
   const shown = (text.trim() || "") + (img ? (text.trim() ? "　[图片]" : "[图片]") : "");
-  addMsg("user", shown);
+  const userEl = addMsg("user", shown);
   history.push({
     role: "user",
     content: (text.trim() || "（我发了一张图）") + (img ? "（附了一张参考图）" : ""),
@@ -516,6 +539,12 @@ async function send(text) {
     });
     const data = await res.json();
     delTyping();
+    if (res.status === 429 || data.limited) {
+      history.pop(); // 这轮没被接受，不算进上下文
+      userEl?.remove(); // 客人那句话也撤掉，避免误会
+      showLimit(data.message || "今天的聊天次数用完了，明天再来～");
+      return;
+    }
     if (data.error) {
       addMsg("bot", "哎呀出错了：" + data.error);
     } else {
@@ -531,8 +560,10 @@ async function send(text) {
     addMsg("bot", "网络不太行，再试一次？");
   } finally {
     busy = false;
-    $("send").disabled = false;
-    $("input").focus();
+    if (!limited) {
+      $("send").disabled = false;
+      $("input").focus();
+    }
   }
 }
 

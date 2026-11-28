@@ -1,8 +1,9 @@
-// HTTP 路由处理：本地由 src/server.mjs 调用，云端由 api/index.js 调用。
+﻿// HTTP 路由处理：本地由 src/server.mjs 调用，云端由 api/index.js 调用。
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chat } from "./llm.mjs";
+import { hitChat } from "./ratelimit.mjs";
 import { readSchedule, saveDay, saveWeekly, cancelOrder, createOrder, upcomingDays } from "./schedule-admin.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -43,6 +44,33 @@ export async function handle(req, res) {
 
   // ---- 对话接口 ----
   if (req.method === "POST" && urlPath === "/api/chat") {
+    // 每天每 IP 限制轮次
+    const ip =
+      (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
+      (req.headers["x-real-ip"] || "") ||
+      req.socket?.remoteAddress ||
+      "unknown";
+
+    try {
+      const rl = await hitChat(ip);
+      if (!rl.allowed) {
+        res.writeHead(429, { "content-type": "application/json; charset=utf-8" });
+        res.end(
+          JSON.stringify({
+            error: "今日次数已耗尽",
+            limited: true,
+            used: rl.used,
+            limit: rl.limit,
+            message: `今天已经聊满 ${rl.limit} 轮了，明天再来吧～想约时间可以直接加微信找店主。`,
+          })
+        );
+        return;
+      }
+    } catch (e) {
+      // 计数失败不要挡住正常对话，放行但记一笔日志
+      console.warn("限流计数失败:", e.message);
+    }
+
     let raw = "";
     for await (const chunk of req) raw += chunk;
     try {
