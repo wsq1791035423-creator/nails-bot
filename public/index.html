@@ -3,458 +3,595 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>美甲报价器 · Demo</title>
+<title>美甲预约 · 和美甲师聊聊</title>
 <style>
   :root {
-    --bg: #f7f4fc;
-    --card: #ffffff;
-    --ink: #2c2733;
-    --muted: #857d94;
-    --line: #e7e1f2;
-    --purple: #8b5cf6;
-    --purple-soft: #ede4fb;
-    --gold: #9b6d00;
-    --warn-bg: #fbf3e2;
-    --danger: #c0455e;
+    --bg: #f7f4fc; --card: #fff; --ink: #2c2733; --muted: #857d94;
+    --line: #e7e1f2; --purple: #8b5cf6; --purple-deep: #6d3fd4;
+    --purple-soft: #ede4fb; --warn-bg: #fbf3e2;
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font: 15px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-  }
-  header {
-    padding: 28px 20px 8px;
-    max-width: 1120px;
-    margin: 0 auto;
-  }
-  header h1 { margin: 0 0 4px; font-size: 21px; letter-spacing: .5px; }
-  header p { margin: 0; color: var(--muted); font-size: 13px; }
-  nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
-  nav a { color: var(--muted); text-decoration: none; }
-  nav a:hover { color: var(--purple); }
-  nav a.on { color: var(--purple); font-weight: 600; }
-  .wrap {
-    max-width: 1120px;
-    margin: 0 auto;
-    padding: 16px 20px 64px;
-    display: grid;
-    grid-template-columns: 1.35fr 1fr;
-    gap: 18px;
-    align-items: start;
-  }
-  @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } }
-
-  .card {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 18px;
-    margin-bottom: 14px;
-  }
-  .card h2 {
-    margin: 0 0 12px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: 1.5px;
+    display: flex; flex-direction: column;
   }
 
-  /* 基础项目 */
-  .base-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  @media (max-width: 560px) { .base-grid { grid-template-columns: 1fr; } }
-  .base {
-    border: 1.5px solid var(--line);
-    border-radius: 12px;
-    padding: 12px 14px;
-    cursor: pointer;
-    transition: .15s;
-    background: #fdfcff;
+  /* ---------- 顶栏 ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 20px; background: rgba(255,255,255,.86);
+    backdrop-filter: blur(12px); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 30;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .brand-mark {
+    width: 32px; height: 32px; border-radius: 11px; flex-shrink: 0;
+    background: linear-gradient(135deg, #8b5cf6, #c4b5fd);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    box-shadow: 0 3px 10px rgba(139, 92, 246, .3);
+  }
+  .brand-text { min-width: 0; }
+  .brand-text b { display: block; font-size: 14px; line-height: 1.3; }
+  .brand-text span { font-size: 11px; color: var(--muted); line-height: 1.2; display: block; }
+  .topnav { margin-left: auto; display: flex; gap: 5px; flex-wrap: wrap; }
+  .topnav a {
+    font-size: 12px; color: var(--muted); text-decoration: none;
+    padding: 5px 11px; border-radius: 999px; transition: .15s; white-space: nowrap;
+  }
+  .topnav a:hover { background: var(--purple-soft); color: var(--purple-deep); }
+  .topnav a.on { background: var(--purple-soft); color: var(--purple-deep); font-weight: 600; }
+  @media (max-width: 620px) {
+    .topnav a { padding: 4px 9px; font-size: 11.5px; }
+    .brand-text span { display: none; }
+  }
+
+  /* ---------- 欢迎页 ---------- */
+  .welcome {
+    flex: 1; overflow-y: auto; padding: 28px 20px 10px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .welcome.hide { display: none; }
+  .welcome-inner { width: 100%; max-width: 520px; }
+  .hello { text-align: center; margin-bottom: 26px; }
+  .hello-avatar {
+    width: 76px; height: 76px; border-radius: 26px; margin: 0 auto 16px;
+    background: linear-gradient(135deg, #8b5cf6, #c4b5fd);
+    display: flex; align-items: center; justify-content: center; font-size: 36px;
+    box-shadow: 0 10px 30px rgba(139, 92, 246, .32);
     position: relative;
   }
-  .base:hover { border-color: #d6c8ee; }
-  .base.on { border-color: var(--purple); background: var(--purple-soft); }
-  .base .t { font-weight: 600; font-size: 14px; }
-  .base .p { color: var(--purple); font-weight: 700; font-size: 18px; margin-top: 2px; }
-  .base .p small { font-size: 12px; font-weight: 500; color: var(--muted); }
-  .base .d { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.45; }
-
-  /* 款式行 */
-  .style-row {
-    display: grid;
-    grid-template-columns: 1fr 110px 92px;
-    gap: 10px;
-    align-items: center;
-    padding: 9px 0;
-    border-bottom: 1px dashed var(--line);
+  .hello-avatar::after {
+    content: ""; position: absolute; inset: -6px; border-radius: 32px;
+    border: 1px solid rgba(139, 92, 246, .22);
   }
-  .style-row:last-child { border-bottom: none; }
-  .style-row .nm { font-size: 14px; }
-  .style-row .rule { color: var(--muted); font-size: 11.5px; }
-  .style-row input[type=range] { width: 100%; accent-color: var(--purple); }
-  .style-row .val { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
-  .style-row .val b { color: var(--purple); }
-  .style-row.zero { opacity: .55; }
+  .hello h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: .3px; }
+  .hello p { margin: 0; color: var(--muted); font-size: 13px; }
 
-  /* 附加费 */
-  .fee-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 0; border-bottom: 1px dashed var(--line);
+  .actions { display: flex; flex-direction: column; gap: 10px; }
+  .action {
+    display: flex; align-items: center; gap: 14px; text-align: left;
+    width: 100%; padding: 16px 18px; border-radius: 16px;
+    background: var(--card); border: 1px solid var(--line);
+    font: inherit; color: inherit; cursor: pointer; transition: .18s;
+    box-shadow: 0 1px 2px rgba(109, 63, 212, .04);
   }
-  .fee-row:last-child { border-bottom: none; }
-  .fee-row .nm { font-size: 14px; }
-  .fee-row .pr { color: var(--muted); font-size: 12px; }
-  .stepper { display: flex; align-items: center; gap: 6px; }
-  .stepper button {
-    width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--line);
-    background: #fff; color: var(--ink); cursor: pointer; font-size: 14px; line-height: 1;
+  .action:hover {
+    border-color: #cbb8f5; transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(109, 63, 212, .12);
   }
-  .stepper button:hover { border-color: var(--purple); color: var(--purple); }
-  .stepper span { min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+  .action .ico {
+    width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+    background: var(--purple-soft); display: flex; align-items: center;
+    justify-content: center; font-size: 21px;
+  }
+  .action.primary { background: linear-gradient(135deg, #8b5cf6, #a78bfa); border-color: transparent; }
+  .action.primary .ico { background: rgba(255,255,255,.24); }
+  .action.primary .t { color: #fff; }
+  .action.primary .d { color: rgba(255,255,255,.82); }
+  .action.primary:hover { box-shadow: 0 10px 28px rgba(139, 92, 246, .38); }
+  .action .t { font-size: 14.5px; font-weight: 600; line-height: 1.4; }
+  .action .d { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 2px; }
+  .action .arrow { margin-left: auto; color: #c9c1d6; font-size: 18px; }
+  .action.primary .arrow { color: rgba(255,255,255,.7); }
 
-  .late input {
-    width: 74px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px;
-    font: inherit; text-align: right;
+  .welcome-note {
+    text-align: center; color: #b5adc2; font-size: 11.5px;
+    margin-top: 22px; line-height: 1.8;
   }
 
-  /* 顾客类型 */
-  .guest-row { display: flex; gap: 8px; }
-  .guest-btn {
-    flex: 1; padding: 10px 12px; border-radius: 12px; cursor: pointer;
-    border: 1.5px solid var(--line); background: #fff; color: #6b6478;
-    font: inherit; font-size: 13.5px; transition: .15s;
+  /* ---------- 对话区 ---------- */
+  .chat {
+    flex: 1; overflow-y: auto; padding: 18px 20px 8px;
+    max-width: 780px; margin: 0 auto; width: 100%;
   }
-  .guest-btn:hover { border-color: #cbb8f5; color: var(--purple-deep); }
-  .guest-btn.on {
-    background: var(--purple); border-color: var(--purple); color: #fff;
-    font-weight: 600; box-shadow: 0 3px 10px rgba(139,92,246,.3);
-  }
-  .guest-hint { margin-top: 8px; font-size: 11.5px; color: var(--muted); }
-  .lines li.discount { color: var(--purple-deep); }
-  .lines li.discount .amt { font-weight: 700; }
+  .chat.empty { display: none; }
 
-  /* 报价面板 */
-  aside { position: sticky; top: 16px; }
-  @media (max-width: 860px) { aside { position: static; } }
-  .quote-total {
-    font-size: 40px; font-weight: 700; color: var(--purple);
-    font-variant-numeric: tabular-nums; line-height: 1.1;
+  .msg { display: flex; margin-bottom: 16px; gap: 9px; align-items: flex-start; }
+  .msg.user { justify-content: flex-end; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, #8b5cf6, #c4b5fd);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; box-shadow: 0 2px 8px rgba(139, 92, 246, .24);
   }
-  .quote-total.cancelled { color: var(--danger); font-size: 26px; }
-  .quote-sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
-  .lines { margin: 14px 0 0; padding: 0; list-style: none; }
-  .lines li {
-    display: flex; justify-content: space-between; gap: 10px;
-    padding: 6px 0; border-top: 1px dashed var(--line); font-size: 13.5px;
+  .bubble {
+    max-width: 74%; padding: 11px 15px; border-radius: 16px;
+    background: var(--card); border: 1px solid var(--line);
+    white-space: pre-wrap; word-break: break-word;
+    border-top-left-radius: 5px; box-shadow: 0 1px 3px rgba(109, 63, 212, .05);
   }
-  .lines li .note { color: var(--muted); font-size: 11.5px; display: block; }
-  .lines li .amt { white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .pending {
-    margin-top: 12px; background: var(--warn-bg); border-radius: 10px;
-    padding: 10px 12px; font-size: 12.5px; color: #7a5c12; line-height: 1.5;
+  .msg.user .bubble {
+    background: linear-gradient(135deg, #8b5cf6, #9d75f8); color: #fff;
+    border-color: transparent; border-top-left-radius: 16px; border-top-right-radius: 5px;
+    box-shadow: 0 3px 12px rgba(139, 92, 246, .28);
   }
-  .pending b { display: block; margin-bottom: 3px; }
-  .btn {
-    width: 100%; margin-top: 12px; padding: 11px; border: none; border-radius: 11px;
-    background: var(--ink); color: #fff; font: inherit; cursor: pointer;
+  .bubble strong { font-weight: 600; }
+
+  .bubble table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0 8px; }
+  .bubble td, .bubble th { padding: 5px 6px; border-bottom: 1px dashed var(--line); text-align: left; vertical-align: top; }
+  .bubble th { color: var(--muted); font-size: 11.5px; font-weight: 500; }
+  .bubble .pt-title { font-weight: 600; margin: 11px 0 3px; font-size: 13px; color: var(--purple-deep); }
+  .bubble .pt-price { color: var(--purple-deep); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .bubble .pt-note { color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+  .cards { display: flex; flex-direction: column; gap: 8px; margin: 2px 0 16px 39px; max-width: 70%; }
+  .rcard {
+    display: grid; grid-template-columns: 70px 1fr; gap: 11px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 14px; overflow: hidden; align-items: stretch;
+    transition: .15s;
   }
-  .btn:hover { opacity: .88; }
-  .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
-  .foot { color: var(--muted); font-size: 11.5px; margin-top: 12px; line-height: 1.55; }
-  .toast {
-    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(16px);
-    background: var(--ink); color: #fff; padding: 9px 16px; border-radius: 999px;
-    font-size: 13px; opacity: 0; pointer-events: none; transition: .2s;
+  .rcard:hover { border-color: #cbb8f5; box-shadow: 0 4px 14px rgba(109, 63, 212, .1); }
+  .rcard img { width: 70px; height: 88px; object-fit: cover; display: block; background: #f0ecf7; }
+  .rcard .rb { padding: 9px 12px 9px; }
+  .rcard .rn { font-weight: 600; font-size: 13px; line-height: 1.4; }
+  .rcard .rp { color: var(--purple-deep); font-weight: 700; font-size: 14.5px; margin-top: 1px; }
+  .rcard .rr { color: var(--muted); font-size: 11px; margin-top: 3px; line-height: 1.4; }
+
+  .typing {
+    display: flex; align-items: center; gap: 9px; color: var(--muted);
+    font-size: 12.5px; margin-bottom: 14px;
   }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .typing .dots { display: flex; gap: 3px; }
+  .typing .dots i {
+    width: 5px; height: 5px; border-radius: 50%; background: #c4b5fd;
+    animation: bounce 1.2s infinite;
+  }
+  .typing .dots i:nth-child(2) { animation-delay: .15s; }
+  .typing .dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity:.5 } 30% { transform: translateY(-4px); opacity:1 } }
+
+  /* ---------- 输入区 ---------- */
+  .composer {
+    padding: 10px 20px 16px; max-width: 780px; margin: 0 auto; width: 100%;
+    background: linear-gradient(to top, var(--bg) 60%, rgba(247,244,252,0));
+  }
+  .inputrow {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--card); border: 1.5px solid var(--line);
+    border-radius: 18px; padding: 5px 5px 5px 8px; transition: .15s;
+    box-shadow: 0 2px 10px rgba(109, 63, 212, .06);
+  }
+  .inputrow:focus-within { border-color: #b79bf2; box-shadow: 0 3px 16px rgba(139, 92, 246, .16); }
+  .inputrow input {
+    flex: 1; padding: 9px 8px; border: none; background: transparent;
+    font: inherit; outline: none; min-width: 0;
+  }
+  .inputrow input[type=file] {
+    position: absolute; width: 1px; height: 1px; opacity: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .imgbtn {
+    padding: 7px 9px; border-radius: 12px; border: none; background: transparent;
+    cursor: pointer; font-size: 18px; line-height: 1; display: flex; align-items: center;
+    transition: .15s; flex-shrink: 0;
+  }
+  .imgbtn:hover { background: var(--purple-soft); }
+  .sendbtn {
+    padding: 9px 20px; border: none; border-radius: 13px;
+    background: linear-gradient(135deg, #8b5cf6, #a78bfa); color: #fff;
+    font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer;
+    transition: .15s; flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(139, 92, 246, .26);
+  }
+  .sendbtn:hover { box-shadow: 0 5px 16px rgba(139, 92, 246, .38); }
+  .sendbtn:disabled { opacity: .5; cursor: default; box-shadow: none; }
+
+  .preview { display: none; margin-top: 9px; align-items: center; gap: 9px; }
+  .preview.on { display: flex; }
+  .preview img { height: 60px; border-radius: 10px; border: 1px solid var(--line); }
+  .preview .x {
+    border: 0; background: var(--purple-soft); color: var(--purple-deep);
+    width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 13px; line-height: 1;
+  }
+  .preview .hint { color: var(--muted); font-size: 12px; }
+
+  .tip { color: #b5adc2; font-size: 11px; margin-top: 8px; text-align: center; }
+
+  /* ---------- 诊断 ---------- */
+  .diag {
+    position: fixed; right: 14px; bottom: 14px; z-index: 60;
+    border: 1px solid var(--line); background: rgba(255,255,255,.9);
+    color: var(--muted); font: inherit; font-size: 11.5px;
+    padding: 5px 11px; border-radius: 999px; cursor: pointer;
+    backdrop-filter: blur(6px); opacity: .55; transition: .15s;
+  }
+  .diag:hover { opacity: 1; }
+  .diagbox {
+    display: none; max-width: 780px; margin: 0 auto 8px; width: calc(100% - 40px);
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 11px 15px; font-size: 11.5px; color: #5c5568;
+    white-space: pre-wrap; line-height: 1.8;
+  }
+  .diagbox.on { display: block; }
 </style>
 </head>
 <body>
-<header>
-  <h1>美甲报价器</h1>
-  <p>选项目 → 拖手指数 → 实时出价。价格来自 knowledge/pricing.json，改价只改那一个文件。</p>
-  <nav>
-    <a href="/web/chat.html">AI 对话</a>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">💅</div>
+    <div class="brand-text">
+      <b>和美甲师聊聊</b>
+      <span>AI 先接待，价格以到店确认为准</span>
+    </div>
+  </div>
+  <nav class="topnav">
+    <a href="/web/chat.html" class="on">AI 对话</a>
     <a href="/web/recommend.html">选款推荐</a>
     <a href="/web/gallery.html">款式图库</a>
-    <a href="/web/" class="on">报价器</a>
+    <a href="/web/">报价器</a>
+    <a href="/web/schedule.html">档期管理</a>
   </nav>
-</header>
-
-<div class="wrap">
-  <main>
-    <section class="card">
-      <h2>基础项目（含精细前置 + 建构）</h2>
-      <div class="base-grid" id="baseGrid"></div>
-    </section>
-
-    <section class="card">
-      <h2>款式加价（法式/波点/腮红/渐变/晕染 共用指次：每满 10 指次收 8 元）</h2>
-      <div id="styleList"></div>
-    </section>
-
-    <section class="card">
-      <h2>附加服务</h2>
-      <div id="feeList"></div>
-    </section>
-
-    <section class="card">
-      <h2>顾客类型</h2>
-      <div class="guest-row" id="guestRow">
-        <button class="guest-btn on" data-v="new">新客 · 原价</button>
-        <button class="guest-btn" data-v="returning">老顾客 · 95 折</button>
-      </div>
-      <div class="guest-hint" id="guestHint">回头客整单打 95 折，保留两位小数</div>
-    </section>
-
-    <section class="card">
-      <h2>迟到</h2>
-      <div class="late" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span>迟到</span>
-        <input id="lateMin" type="number" min="0" max="120" value="0" step="1">
-        <span>分钟</span>
-        <span style="color:var(--muted);font-size:12px">10 分钟内免费；10–30 分钟每分钟 1 元；超 30 分钟取消</span>
-      </div>
-    </section>
-  </main>
-
-  <aside>
-    <section class="card">
-      <h2>报价</h2>
-      <div class="quote-total" id="total">¥39</div>
-      <div class="quote-sub" id="sub">约 2–2.7 小时</div>
-      <ul class="lines" id="lines"></ul>
-      <div id="pendingBox"></div>
-      <button class="btn" id="copyBtn">复制报价文案</button>
-      <button class="btn ghost" id="resetBtn">重置</button>
-      <div class="foot">
-        原型 demo：这里只做报价，还没有对话和款式推荐。<br>
-        区间价（卡通、堆钻等）会标「需人工确认」。
-      </div>
-    </section>
-  </aside>
 </div>
 
-<div class="toast" id="toast">已复制</div>
+<!-- 欢迎页 -->
+<div class="welcome" id="welcome">
+  <div class="welcome-inner">
+    <div class="hello">
+      <div class="hello-avatar">💅</div>
+      <h1>想做点什么款？</h1>
+      <p>发张图估个价，或者说说的手，我给你挑几款</p>
+    </div>
+
+    <div class="actions" id="actions">
+      <button class="action primary" data-action="upload">
+        <span class="ico">📷</span>
+        <span>
+          <span class="t">发图问价</span>
+          <span class="d">有喜欢的款？发图我看看做法和价格</span>
+        </span>
+        <span class="arrow">›</span>
+      </button>
+
+      <button class="action" data-action="chat" data-text="帮我推荐">
+        <span class="ico">✨</span>
+        <span>
+          <span class="t">帮我推荐</span>
+          <span class="d">说说手和预算，我挑几款合适的给你看</span>
+        </span>
+        <span class="arrow">›</span>
+      </button>
+
+      <button class="action" data-action="price">
+        <span class="ico">📋</span>
+        <span>
+          <span class="t">先看价格表</span>
+          <span class="d">全部价目一次性发你，不用等</span>
+        </span>
+        <span class="arrow">›</span>
+      </button>
+    </div>
+
+    <div class="welcome-note">
+      本甲 39 起 · 上门服务 · 提前一天约<br>
+      手工做不出 100% 一样的网图，会有轻微色差
+    </div>
+  </div>
+</div>
+
+<!-- 对话区 -->
+<div class="chat empty" id="chat"></div>
+<div class="diagbox" id="diagbox"></div>
+
+<!-- 输入区 -->
+<div class="composer">
+  <div class="inputrow">
+    <label class="imgbtn" id="imgbtn" for="file" title="发参考图">📷</label>
+    <input type="file" id="file" accept="image/*">
+    <input id="input" placeholder="说说你的手，或者想做什么款" autocomplete="off">
+    <button class="sendbtn" id="send">发送</button>
+  </div>
+  <div class="preview" id="preview"></div>
+  <div class="tip">价格以到店确认为准 · 档期需本人确认</div>
+</div>
+
+<button class="diag" id="diag">ⓘ 发不了图？</button>
 
 <script type="module">
-import { quote } from "/src/pricing-core.mjs";
-
 const $ = (id) => document.getElementById(id);
-let pricing = null;
-const state = { baseId: "B1", styles: {}, fees: {}, late: 0, returning: false };
+const history = [];
+let busy = false;
+let pendingImage = null;
+let started = false;
 
-function save() {
-  try { localStorage.setItem("nailQuoteState", JSON.stringify(state)); } catch {}
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 900;
+      let { width: w, height: h } = img;
+      if (Math.max(w, h) > max) {
+        const r = max / Math.max(w, h);
+        w = Math.round(w * r);
+        h = Math.round(h * r);
+      }
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL("image/jpeg", 0.82).split(",")[1]);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
 }
-function load() {
+
+async function handleFile(f) {
+  if (!f || !f.type.startsWith("image/")) {
+    alert("只支持图片文件，换一张 JPG / PNG 试试");
+    return;
+  }
   try {
-    const s = JSON.parse(localStorage.getItem("nailQuoteState") || "null");
-    if (s && s.baseId) Object.assign(state, s);
-  } catch {}
-}
-
-// 清掉已经不存在的项目 id（价格表改过之后，旧缓存会失灵）
-function sanitizeState() {
-  if (!pricing) return;
-  const baseIds = new Set(pricing.base.map((b) => b.id));
-  const styleIds = new Set(pricing.styles.map((s) => s.id));
-  const feeIds = new Set(pricing.fees.map((f) => f.id));
-
-  if (!baseIds.has(state.baseId)) state.baseId = pricing.base[0]?.id || "B1";
-  for (const id of Object.keys(state.styles)) {
-    if (!styleIds.has(id)) delete state.styles[id];
-  }
-  for (const id of Object.keys(state.fees)) {
-    if (!feeIds.has(id)) delete state.fees[id];
-  }
-  state.returning = !!state.returning;
-}
-
-function renderBase() {
-  $("baseGrid").innerHTML = "";
-  for (const b of pricing.base) {
-    const el = document.createElement("div");
-    el.className = "base" + (b.id === state.baseId ? " on" : "");
-    el.innerHTML = `
-      <div class="t">${b.name}</div>
-      <div class="p">¥${b.price}</div>
-      <div class="d">${b.suitable ?? b.scene ?? ""}</div>`;
-    el.onclick = () => { state.baseId = b.id; save(); renderBase(); calc(); };
-    $("baseGrid").appendChild(el);
+    const b64 = await fileToBase64(f);
+    pendingImage = { data: b64, mime: "image/jpeg" };
+    $("preview").classList.add("on");
+    $("preview").innerHTML = `
+      <img src="data:image/jpeg;base64,${b64}" alt="预览">
+      <span class="hint">图已选好，点「发送」发出去</span>
+      <button class="x" id="rmimg" title="移除">×</button>`;
+    $("rmimg").onclick = clearImage;
+    $("input").focus();
+  } catch (err) {
+    console.error("图片读取失败", err);
+    alert("这张图读不出来（可能是 HEIC 格式），换一张 JPG / PNG 试试");
   }
 }
 
-function styleRule(s) {
-  if (s.unit === "full_only") return `整手 ¥${s.full_hand}`;
-  if (s.per_finger_min != null) return `¥${s.per_finger_min}–${s.per_finger_max}/指`;
-  if (s.per_finger === 0 && (s.full_hand ?? 0) === 0) return "免费";
-  if (s.per_finger != null && s.full_hand != null)
-    return `¥${s.per_finger}/指 · 整手 ¥${s.full_hand}`;
-  if (s.per_finger != null) return `¥${s.per_finger}/指`;
-  return "";
+function clearImage() {
+  pendingImage = null;
+  $("preview").classList.remove("on");
+  $("preview").innerHTML = "";
+  $("file").value = "";
 }
 
-function priceOf(style, fingers) {
-  if (fingers === 0) return "—";
-  const n = Math.min(fingers, 10);
-  if (style.unit === "full_only") return n === 10 ? `¥${style.full_hand}` : "需整手";
-  if (style.per_finger_min != null) return `¥${style.per_finger_min * n}–${style.per_finger_max * n}`;
-  const per = style.per_finger ?? 0;
-  if (style.full_hand != null && n >= 10) return `¥${style.full_hand}`;
-  if (per === 0) return "免费";
-  return `¥${per * n}`;
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function fmt(s) {
+  return esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>");
 }
 
-function renderStyles() {
-  const box = $("styleList");
-  box.innerHTML = "";
-  for (const s of pricing.styles) {
-    const f = state.styles[s.id] ?? 0;
-    const row = document.createElement("div");
-    row.className = "style-row" + (f === 0 ? " zero" : "");
-    row.innerHTML = `
-      <div>
-        <div class="nm">${s.name}</div>
-        <div class="rule">${styleRule(s)}${s.needs_confirm ? " · 需人工确认" : ""}</div>
-      </div>
-      <input type="range" min="0" max="10" step="1" value="${f}">
-      <div class="val">${f === 0 ? "<span style='color:var(--muted)'>不做</span>" : `<b>${priceOf(s, f)}</b><br><span style="color:var(--muted);font-size:11px">${f} 指</span>`}</div>`;
-    const range = row.querySelector("input");
-    range.oninput = () => {
-      state.styles[s.id] = Number(range.value);
-      save(); renderStyles(); calc();
-    };
-    box.appendChild(row);
+/* 第一次发言时，把欢迎页收起来，切到对话 */
+function enterChat() {
+  if (started) return;
+  started = true;
+  $("welcome").classList.add("hide");
+  $("chat").classList.remove("empty");
+}
+
+function makeMsg(role, innerHtml) {
+  const wrap = document.createElement("div");
+  wrap.className = "msg " + (role === "user" ? "user" : "bot");
+  if (role !== "user") {
+    const av = document.createElement("div");
+    av.className = "avatar";
+    av.textContent = "💅";
+    wrap.appendChild(av);
+  }
+  const b = document.createElement("div");
+  b.className = "bubble";
+  b.innerHTML = innerHtml;
+  wrap.appendChild(b);
+  $("chat").appendChild(wrap);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  return wrap;
+}
+
+function addMsg(role, text, cards) {
+  makeMsg(role, fmt(text));
+
+  if (cards?.length) {
+    const box = document.createElement("div");
+    box.className = "cards";
+    box.innerHTML = cards.map((c) => `
+      <div class="rcard">
+        <img src="${c.img}" alt="${esc(c.name)}">
+        <div class="rb">
+          <div class="rn">${esc(c.name)}</div>
+          <div class="rp">${esc(c.priceText)}</div>
+          <div class="rr">${esc(c.reason)}　${esc(c.durationText)}</div>
+        </div>
+      </div>`).join("");
+    $("chat").appendChild(box);
+    $("chat").scrollTop = $("chat").scrollHeight;
   }
 }
 
-function renderFees() {
-  const box = $("feeList");
-  box.innerHTML = "";
-  for (const fee of pricing.fees) {
-    const max = fee.unit === "per_finger" ? 10 : 1;
-    const n = state.fees[fee.id] ?? 0;
-    const row = document.createElement("div");
-    row.className = "fee-row";
-    row.innerHTML = `
-      <div><div class="nm">${fee.name}</div><div class="pr">¥${fee.price}${fee.unit === "per_finger" ? "/指" : "/次"}</div></div>
-      <div class="stepper">
-        <button data-k="minus">−</button><span>${n}</span><button data-k="plus">+</button>
-      </div>`;
-    row.querySelector('[data-k="minus"]').onclick = () => {
-      state.fees[fee.id] = Math.max(0, (state.fees[fee.id] ?? 0) - 1);
-      save(); renderFees(); calc();
-    };
-    row.querySelector('[data-k="plus"]').onclick = () => {
-      state.fees[fee.id] = Math.min(max, (state.fees[fee.id] ?? 0) + 1);
-      save(); renderFees(); calc();
-    };
-    box.appendChild(row);
-  }
+function addHtml(role, html) {
+  makeMsg(role, html);
 }
 
-let lastResult = null;
+function buildPriceHtml(p) {
+  const baseRows = p.base
+    .map((b) => `<tr><td>${b.name}</td><td class="pt-price">¥${b.price}</td><td class="pt-note">${b.suitable || ""}</td></tr>`)
+    .join("");
 
-function calc() {
-  const q = {
-    baseId: state.baseId,
-    styles: Object.entries(state.styles)
-      .filter(([, f]) => f > 0)
-      .map(([id, fingers]) => ({ id, fingers })),
-    fees: Object.entries(state.fees)
-      .filter(([, n]) => n > 0)
-      .map(([id, count]) => ({ id, count })),
-    lateMinutes: state.late || 0,
-    returning: state.returning || false,
-  };
-  const r = quote(pricing, q);
-  lastResult = r;
+  const styleRows = [
+    ["钻饰（小钻 / 单钻）", "免费", "随便加"],
+    ["法式 / 波点 / 腮红 / 渐变 / 晕染", "单指 2 元 · 整手 8 元", "这几种共用指次，每满 10 指次收 8 元"],
+    ["极简手绘（细线条 / 简笔画）", "单指 3 元 · 整手 10 元", ""],
+    ["稍复杂手绘", "5 元/指", "没有整手打包价"],
+    ["卡通图案", "5–10 元/指", "具体看图案"],
+    ["款式钻 / 堆钻 / 浮雕", "5–10 元/指", "具体看款式"],
+    ["复杂晕染（醋酸）", "10 元/指", "最多 4 指，4 指打包 36"],
+    ["魔镜粉 / 海莉粉 / 蹭粉", "整手 10 元 · 单指 2 元", "做几个手指先确认"],
+  ]
+    .map(([n, pr, note]) => `<tr><td>${n}</td><td class="pt-price">${pr}</td><td class="pt-note">${note}</td></tr>`)
+    .join("");
 
-  $("total").textContent = r.totalText;
-  $("total").className = "quote-total" + (r.cancelled ? " cancelled" : "");
-  $("sub").textContent = `时长：${r.durationText}（含 1.5–2 倍工时）`;
-
-  $("lines").innerHTML = r.lines
+  const feeRows = p.fees
     .map(
-      (l) =>
-        `<li class="${/折/.test(l.label) ? "discount" : ""}"><span>${l.label}<span class="note">${l.note || ""}</span></span><span class="amt">${l.amount}</span></li>`
+      (f) =>
+        `<tr><td>${f.name}</td><td class="pt-price">¥${f.price}</td><td class="pt-note">${f.unit === "per_finger" ? "按手指数" : "每次"}</td></tr>`
     )
     .join("");
 
-  const uniq = [...new Set(r.pending)];
-  $("pendingBox").innerHTML = uniq.length
-    ? `<div class="pending"><b>需人工确认</b>${uniq.join("<br>")}</div>`
-    : "";
+  return `
+    <div class="pt-title">基础项目（含卸本甲 + 去死皮 + 湿处理）</div>
+    <table><thead><tr><th>项目</th><th>价格</th><th>适合 / 注意</th></tr></thead><tbody>${baseRows}</tbody></table>
+    <div class="pt-title">款式加价</div>
+    <table><thead><tr><th>做法</th><th>价格</th><th>说明</th></tr></thead><tbody>${styleRows}</tbody></table>
+    <div class="pt-title">其他</div>
+    <table><thead><tr><th>项目</th><th>价格</th><th></th></tr></thead><tbody>${feeRows}</tbody></table>
+    <div class="pt-note" style="margin-top:8px">
+      老顾客（来过一次以上）整单 95 折，保留两位小数。<br>
+      迟到：10 分钟内免费，10–30 分钟每分钟 1 元，超 30 分钟取消且不再接单。<br>
+      做工时长是普通店的 1.5–2 倍（本甲 2–3 小时，延长 3–4 小时），不留够时间会做不完。<br>
+      不满意可当场卸甲，不收钱。
+    </div>`;
 }
 
-function toast(msg) {
-  const t = $("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 1600);
-}
-
-$("copyBtn").onclick = async () => {
-  if (!lastResult) return;
-  const lines = lastResult.lines.map((l) => `${l.label}：${l.amount}`).join("\n");
-  const text = `报价明细\n${lines}\n\n合计：${lastResult.totalText}\n预计时长：${lastResult.durationText}（做工较细，请预留）`;
+async function showPriceTable() {
   try {
-    await navigator.clipboard.writeText(text);
-    toast("已复制，可发给客人");
+    const p = await fetch("/knowledge/pricing.json").then((r) => r.json());
+    enterChat();
+    addMsg("user", "获取价格表");
+    addHtml("bot", buildPriceHtml(p));
+    history.push({ role: "user", content: "（点了获取价格表）" });
+    history.push({ role: "assistant", content: "[已向客人展示完整价格表]" });
   } catch {
-    toast("复制失败，请手动选择");
+    enterChat();
+    addMsg("bot", "价格表加载失败，刷新一下页面再试？");
   }
-};
-
-$("resetBtn").onclick = () => {
-  state.baseId = "B1"; state.styles = {}; state.fees = {}; state.late = 0; state.returning = false;
-  $("lateMin").value = 0;
-  renderGuest();
-  save(); renderBase(); renderStyles(); renderFees(); calc();
-};
-
-/* 顾客类型：新客 / 老顾客 */
-function renderGuest() {
-  [...$("guestRow").children].forEach((b) => {
-    b.classList.toggle("on", (b.dataset.v === "returning") === state.returning);
-  });
-  $("guestHint").textContent = state.returning
-    ? "老顾客 95 折已生效，整单打折、保留两位小数"
-    : "回头客整单打 95 折，保留两位小数";
 }
 
-$("guestRow").onclick = (e) => {
-  const b = e.target.closest(".guest-btn");
-  if (!b) return;
-  state.returning = b.dataset.v === "returning";
-  renderGuest();
-  save();
-  calc();
-};
+function addTyping() {
+  const el = document.createElement("div");
+  el.className = "typing";
+  el.id = "typing";
+  el.innerHTML = `<div class="avatar">💅</div><span class="dots"><i></i><i></i><i></i></span>`;
+  $("chat").appendChild(el);
+  $("chat").scrollTop = $("chat").scrollHeight;
+}
+function delTyping() {
+  $("typing")?.remove();
+}
 
-$("lateMin").oninput = (e) => {
-  state.late = Math.max(0, Number(e.target.value) || 0);
-  save(); calc();
-};
 
-(async function init() {
+async function send(text) {
+  if (busy || (!text.trim() && !pendingImage)) return;
+  enterChat();
+  const img = pendingImage;
+  busy = true;
+  $("send").disabled = true;
+  $("input").value = "";
+
+  const shown = (text.trim() || "") + (img ? (text.trim() ? "　[图片]" : "[图片]") : "");
+  addMsg("user", shown);
+  history.push({
+    role: "user",
+    content: (text.trim() || "（我发了一张图）") + (img ? "（附了一张参考图）" : ""),
+  });
+  if (img) clearImage();
+  addTyping();
+
   try {
-    const res = await fetch("/knowledge/pricing.json");
-    pricing = await res.json();
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ messages: history, image: img || undefined }),
+    });
+    const data = await res.json();
+    delTyping();
+    if (data.error) {
+      addMsg("bot", "哎呀出错了：" + data.error);
+    } else {
+      history.push({ role: "assistant", content: data.reply });
+      const cardNote = data.cards?.length
+        ? "\n（这一轮推荐的款式：" + data.cards.map((c) => `${c.id} ${c.name} ${c.priceText}`).join("；") + "）"
+        : "";
+      history[history.length - 1].content += cardNote;
+      addMsg("bot", data.reply, data.cards);
+    }
   } catch (e) {
-    document.body.insertAdjacentHTML("beforeend",
-      `<div style="padding:20px;color:#c0455e">读不到 pricing.json，请用 node src/server.mjs 启动。</div>`);
-    return;
+    delTyping();
+    addMsg("bot", "网络不太行，再试一次？");
+  } finally {
+    busy = false;
+    $("send").disabled = false;
+    $("input").focus();
   }
-  load();
-  sanitizeState();
-  $("lateMin").value = state.late || 0;
-  renderGuest();
-  renderBase(); renderStyles(); renderFees(); calc();
-})();
+}
+
+$("send").onclick = () => send($("input").value);
+$("input").onkeydown = (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send($("input").value); }
+};
+
+/* 欢迎页三张卡片 */
+$("actions").onclick = (e) => {
+  const b = e.target.closest(".action");
+  if (!b) return;
+  const a = b.dataset.action;
+  if (a === "upload") { $("file").click(); return; }
+  if (a === "price") { showPriceTable(); return; }
+  if (a === "chat") { send(b.dataset.text || "帮我推荐"); return; }
+};
+
+let lastEvent = "还没操作过";
+function markEvent(s) { lastEvent = s; console.log("[chat]", s); }
+
+$("imgbtn").addEventListener("click", () => markEvent("点了 📷 按钮"));
+$("file").addEventListener("click", () => markEvent("文件选择框被唤起（如果这里没弹出，是浏览器拦的）"));
+$("file").onchange = (e) => {
+  markEvent(`选完文件了：${e.target.files?.[0]?.name || "空"}`);
+  handleFile(e.target.files?.[0]);
+};
+
+$("diag").onclick = () => {
+  const box = $("diagbox");
+  box.classList.toggle("on");
+  if (!box.classList.contains("on")) return;
+  box.textContent = [
+    `最后一步：${lastEvent}`,
+    `是否嵌在 iframe 里：${window.self !== window.top ? "是 —— 这会导致选图被拦" : "不是"}`,
+    `页面地址：${location.href}`,
+    `浏览器：${navigator.userAgent}`,
+    `支持选文件：${"files" in document.createElement("input") ? "是" : "否"}`,
+    `图片已选：${pendingImage ? "是" : "否"}`,
+  ].join("\n");
+};
+
+document.addEventListener("paste", (e) => {
+  const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+  if (item) { e.preventDefault(); handleFile(item.getAsFile()); }
+});
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", (e) => {
+  e.preventDefault();
+  const f = e.dataTransfer?.files?.[0];
+  if (f) handleFile(f);
+});
+
+// 分享用：chat.html?price=1 直接展开价格表
+if (new URLSearchParams(location.search).get("price") === "1") {
+  setTimeout(showPriceTable, 300);
+}
+
+$("input").focus();
 </script>
 </body>
 </html>

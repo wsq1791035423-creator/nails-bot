@@ -26,13 +26,16 @@ copyDir(path.join(ROOT, "knowledge"), path.join(PUB, "knowledge"));
 copyDir(path.join(ROOT, "data", "styles", "web"), path.join(PUB, "data", "styles", "web"));
 copyDir(path.join(ROOT, "data", "reference"), path.join(PUB, "data", "reference"));
 
-// 根路径直接是报价器
-const quote = path.join(PUB, "web", "index.html");
-if (fs.existsSync(quote)) fs.copyFileSync(quote, path.join(PUB, "index.html"));
-
-// 对话页放根目录，分享时链接更短
+// 根路径默认进 AI 对话（客人第一眼看到的就是聊天）
 const chat = path.join(PUB, "web", "chat.html");
+if (fs.existsSync(chat)) fs.copyFileSync(chat, path.join(PUB, "index.html"));
+
+// 另外留一份短链 /chat.html
 if (fs.existsSync(chat)) fs.copyFileSync(chat, path.join(PUB, "chat.html"));
+
+// 报价器单独放在 /quote.html，方便自己打开
+const quote = path.join(PUB, "web", "index.html");
+if (fs.existsSync(quote)) fs.copyFileSync(quote, path.join(PUB, "quote.html"));
 
 const count = (dir) => {
   if (!fs.existsSync(dir)) return 0;

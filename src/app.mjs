@@ -117,11 +117,12 @@ export async function handle(req, res) {
 
   // 路径映射：根、/chat.html 都指向 web/ 下的页面；其余照旧
   const ALIAS = {
-    "/": "/web/index.html",
+    "/": "/web/chat.html",
     "/chat.html": "/web/chat.html",
     "/schedule.html": "/web/schedule.html",
     "/recommend.html": "/web/recommend.html",
     "/gallery.html": "/web/gallery.html",
+    "/quote.html": "/web/index.html",
   };
   let rel = ALIAS[urlPath] || urlPath;
   let file = path.resolve(ROOT, "." + rel);
