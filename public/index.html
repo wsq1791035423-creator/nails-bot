@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -119,6 +119,22 @@
     font: inherit; text-align: right;
   }
 
+  /* 顾客类型 */
+  .guest-row { display: flex; gap: 8px; }
+  .guest-btn {
+    flex: 1; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+    border: 1.5px solid var(--line); background: #fff; color: #6b6478;
+    font: inherit; font-size: 13.5px; transition: .15s;
+  }
+  .guest-btn:hover { border-color: #cbb8f5; color: var(--purple-deep); }
+  .guest-btn.on {
+    background: var(--purple); border-color: var(--purple); color: #fff;
+    font-weight: 600; box-shadow: 0 3px 10px rgba(139,92,246,.3);
+  }
+  .guest-hint { margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+  .lines li.discount { color: var(--purple-deep); }
+  .lines li.discount .amt { font-weight: 700; }
+
   /* 报价面板 */
   aside { position: sticky; top: 16px; }
   @media (max-width: 860px) { aside { position: static; } }
@@ -185,6 +201,15 @@
     </section>
 
     <section class="card">
+      <h2>顾客类型</h2>
+      <div class="guest-row" id="guestRow">
+        <button class="guest-btn on" data-v="new">新客 · 原价</button>
+        <button class="guest-btn" data-v="returning">老顾客 · 95 折</button>
+      </div>
+      <div class="guest-hint" id="guestHint">回头客整单打 95 折，保留两位小数</div>
+    </section>
+
+    <section class="card">
       <h2>迟到</h2>
       <div class="late" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span>迟到</span>
@@ -219,7 +244,7 @@ import { quote } from "/src/pricing-core.mjs";
 
 const $ = (id) => document.getElementById(id);
 let pricing = null;
-const state = { baseId: "B1", styles: {}, fees: {}, late: 0 };
+const state = { baseId: "B1", styles: {}, fees: {}, late: 0, returning: false };
 
 function save() {
   try { localStorage.setItem("nailQuoteState", JSON.stringify(state)); } catch {}
@@ -229,6 +254,23 @@ function load() {
     const s = JSON.parse(localStorage.getItem("nailQuoteState") || "null");
     if (s && s.baseId) Object.assign(state, s);
   } catch {}
+}
+
+// 清掉已经不存在的项目 id（价格表改过之后，旧缓存会失灵）
+function sanitizeState() {
+  if (!pricing) return;
+  const baseIds = new Set(pricing.base.map((b) => b.id));
+  const styleIds = new Set(pricing.styles.map((s) => s.id));
+  const feeIds = new Set(pricing.fees.map((f) => f.id));
+
+  if (!baseIds.has(state.baseId)) state.baseId = pricing.base[0]?.id || "B1";
+  for (const id of Object.keys(state.styles)) {
+    if (!styleIds.has(id)) delete state.styles[id];
+  }
+  for (const id of Object.keys(state.fees)) {
+    if (!feeIds.has(id)) delete state.fees[id];
+  }
+  state.returning = !!state.returning;
 }
 
 function renderBase() {
@@ -326,6 +368,7 @@ function calc() {
       .filter(([, n]) => n > 0)
       .map(([id, count]) => ({ id, count })),
     lateMinutes: state.late || 0,
+    returning: state.returning || false,
   };
   const r = quote(pricing, q);
   lastResult = r;
@@ -335,7 +378,10 @@ function calc() {
   $("sub").textContent = `时长：${r.durationText}（含 1.5–2 倍工时）`;
 
   $("lines").innerHTML = r.lines
-    .map((l) => `<li><span>${l.label}<span class="note">${l.note || ""}</span></span><span class="amt">${l.amount}</span></li>`)
+    .map(
+      (l) =>
+        `<li class="${/折/.test(l.label) ? "discount" : ""}"><span>${l.label}<span class="note">${l.note || ""}</span></span><span class="amt">${l.amount}</span></li>`
+    )
     .join("");
 
   const uniq = [...new Set(r.pending)];
@@ -364,9 +410,29 @@ $("copyBtn").onclick = async () => {
 };
 
 $("resetBtn").onclick = () => {
-  state.baseId = "B1"; state.styles = {}; state.fees = {}; state.late = 0;
+  state.baseId = "B1"; state.styles = {}; state.fees = {}; state.late = 0; state.returning = false;
   $("lateMin").value = 0;
+  renderGuest();
   save(); renderBase(); renderStyles(); renderFees(); calc();
+};
+
+/* 顾客类型：新客 / 老顾客 */
+function renderGuest() {
+  [...$("guestRow").children].forEach((b) => {
+    b.classList.toggle("on", (b.dataset.v === "returning") === state.returning);
+  });
+  $("guestHint").textContent = state.returning
+    ? "老顾客 95 折已生效，整单打折、保留两位小数"
+    : "回头客整单打 95 折，保留两位小数";
+}
+
+$("guestRow").onclick = (e) => {
+  const b = e.target.closest(".guest-btn");
+  if (!b) return;
+  state.returning = b.dataset.v === "returning";
+  renderGuest();
+  save();
+  calc();
 };
 
 $("lateMin").oninput = (e) => {
@@ -384,7 +450,9 @@ $("lateMin").oninput = (e) => {
     return;
   }
   load();
+  sanitizeState();
   $("lateMin").value = state.late || 0;
+  renderGuest();
   renderBase(); renderStyles(); renderFees(); calc();
 })();
 </script>
